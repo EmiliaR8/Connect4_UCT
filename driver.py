@@ -8,8 +8,8 @@ def play_game(verbose="None", parameter=0):
     board.bindPlayer(UniformRandom(), "R")
     board.bindPlayer(UniformRandom(), "Y")
     
-    game_result = False
-    while !game_result:
+    game_result = None
+    while game_result is None:
         game_result = board.turn(verbose, parameter)
     
     if verbose != "None":
