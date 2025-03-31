@@ -80,7 +80,16 @@ class Board():
         return Board(board=arrBoard, turnPlayer=turn, redPlayer=rPlayer, yellowPlayer=yPlayer)
 
     def getAvailableSpaces(self):
+        return list(filter(lambda x: self.board[0,x] == "O", range(7)))
+    
+    def turn(self, verbosity):
         
+        if self.currentTurn == 'R':
+            self.pR.takeTurn(self, verbosity)
+            self.currentTurn = "Y"
+        else:
+            self.pY.takeTurn(self, verbosity)
+            self.currentTurn = ""
 
 class TerminalPlayer():
     def __init__(self):
