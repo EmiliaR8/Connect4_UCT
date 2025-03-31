@@ -109,51 +109,50 @@ class Board():
         return row
     
     def gameOver(self, col, row):
-    """
-    Check if the game is over after placing a piece at (row, col)
-    Returns: -1 for Red win, 1 for Yellow win, 0 for draw, None if game continues
-    """
-    player = self.board[row, col]
-    # Horizontal check
-    for c in range(max(0, col - 3), min(col + 1, self.column_size - 3)):
-        if (self.board[row, c] == player and 
-            self.board[row, c+1] == player and 
-            self.board[row, c+2] == player and 
-            self.board[row, c+3] == player):
-            return -1 if player == 'R' else 1
-    # Vertical check
-    if row <= self.row_size - 4:
-        if (self.board[row, col] == player and 
-            self.board[row+1, col] == player and 
-            self.board[row+2, col] == player and 
-            self.board[row+3, col] == player):
-            return -1 if player == 'R' else 1
-    # Diagonal (top-left to bottom-right)
-    for i in range(-3, 1):
-        r, c = row + i, col + i
-        if (0 <= r <= self.row_size - 4 and 0 <= c <= self.column_size - 4):
-            if (self.board[r, c] == player and 
-                self.board[r+1, c+1] == player and 
-                self.board[r+2, c+2] == player and 
-                self.board[r+3, c+3] == player):
+        """
+        Check if the game is over after placing a piece at (row, col)
+        Returns: -1 for Red win, 1 for Yellow win, 0 for draw, None if game continues
+        """
+        player = self.board[row, col]
+        # Horizontal check
+        for c in range(max(0, col - 3), min(col + 1, self.column_size - 3)):
+            if (self.board[row, c] == player and 
+                self.board[row, c+1] == player and 
+                self.board[row, c+2] == player and 
+                self.board[row, c+3] == player):
                 return -1 if player == 'R' else 1
-
-    # Diagonal (top-right to bottom-left)
-    for i in range(-3, 1):
-        r, c = row + i, col - i
-        if (0 <= r <= self.row_size - 4 and 3 <= c < self.column_size):
-            if (self.board[r, c] == player and 
-                self.board[r+1, c-1] == player and 
-                self.board[r+2, c-2] == player and 
-                self.board[r+3, c-3] == player):
+        # Vertical check
+        if row <= self.row_size - 4:
+            if (self.board[row, col] == player and 
+                self.board[row+1, col] == player and 
+                self.board[row+2, col] == player and 
+                self.board[row+3, col] == player):
                 return -1 if player == 'R' else 1
-    # Check for draw
-    if len(self.getAvailableSpaces()) == 0:
-        return 0
+        # Diagonal (top-left to bottom-right)
+        for i in range(-3, 1):
+            r, c = row + i, col + i
+            if (0 <= r <= self.row_size - 4 and 0 <= c <= self.column_size - 4):
+                if (self.board[r, c] == player and 
+                    self.board[r+1, c+1] == player and 
+                    self.board[r+2, c+2] == player and 
+                    self.board[r+3, c+3] == player):
+                    return -1 if player == 'R' else 1
 
-    # Game continues
-    return None
- 
+        # Diagonal (top-right to bottom-left)
+        for i in range(-3, 1):
+            r, c = row + i, col - i
+            if (0 <= r <= self.row_size - 4 and 3 <= c < self.column_size):
+                if (self.board[r, c] == player and 
+                    self.board[r+1, c-1] == player and 
+                    self.board[r+2, c-2] == player and 
+                    self.board[r+3, c-3] == player):
+                    return -1 if player == 'R' else 1
+        # Check for draw
+        if len(self.getAvailableSpaces()) == 0:
+            return 0
+
+        # Game continues
+        return None
     
 class TerminalPlayer():
     def __init__(self):
@@ -164,3 +163,4 @@ class TerminalPlayer():
 if __name__ == "__main__":
     b1 = Board.buildFromFile("game1.txt")
     print(b1.board)
+    

@@ -20,4 +20,12 @@ def play_game(verbose="None", parameter=0):
         else:
             print("Draw!")
     
+    print(board.board)
+    
     return game_result
+
+if __name__ == "__main__":
+    
+    random.seed(50)
+    play_game(verbose = 'verbose')
+    
