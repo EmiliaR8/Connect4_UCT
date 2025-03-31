@@ -83,7 +83,7 @@ class Board():
     def getAvailableSpaces(self):
         return list(filter(lambda x: self.board[0,x] == "O", range(7)))
     
-    def turn(self, verbosity):
+    def turn(self, verbosity, parameter):
         
         if self.currentTurn == 'R':
             #Red turn
