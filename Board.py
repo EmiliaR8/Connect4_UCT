@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from strategy import UniformRandom
 
 class Board():
     def __init__(self, rows = 6, cols = 7, turnPlayer = "Y", 
@@ -22,7 +23,7 @@ class Board():
         self.pY = yellowPlayer
         self.pR = redPlayer
         
-        self.move_stack = np.zeros((cols*rows))
+        self.move_stack = np.zeros((cols*rows), dtype='i4')
         self.currentTurn = turnPlayer
         self.stackHead = -1
 
@@ -73,8 +74,8 @@ class Board():
             yPlayer = TerminalPlayer()
         elif alg == "UR":
             # Uniform Random
-            rPlayer = UniformRandPlayer()
-            yPlayer = UniformRandPlayer()
+            rPlayer = UniformRandom()
+            yPlayer = UniformRandom()
         
         
         return Board(board=arrBoard, turnPlayer=turn, redPlayer=rPlayer, yellowPlayer=yPlayer)
@@ -85,30 +86,38 @@ class Board():
     def turn(self, verbosity):
         
         if self.currentTurn == 'R':
-            self.pR.takeTurn(self, verbosity)
+            #Red turn
+            selected_col = self.pR.takeTurn(self, verbosity, parameter)
             self.currentTurn = "Y"
+            updated_row = self.putPiece(selected_col, "R")
+            
         else:
-            self.pY.takeTurn(self, verbosity)
-            self.currentTurn = ""
-
+            # Yellow turn
+            selected_col = self.pY.takeTurn(self, verbosity, parameter)
+            self.currentTurn = "R"
+            updated_row = self.putPiece(selected_col,"Y")
+        
+        # push to move_stack
+        #self.push()
+        return self.gameOver(selected_col, updated_row)
+    
+    def putPiece(self, index, player):
+        col = self.board[:,index]
+        # Index the last instance of 'O' and replace it with the player code
+        row = np.where(col == 'O')[0][-1]
+        col[row] = player
+        return row
+    
+    def gameOver(self, col, row):
+        
+        return False
+    
 class TerminalPlayer():
     def __init__(self):
         pass
 
-class UniformRandPlayer():
-    def __init__(self):
-        pass
-    
-    def takeTurn(self, board, verbosity):
-        if self.game is None:
-            self.game = board
-        
-        options = self.game.getAvailableSpaces()
-        play = random.choice(options)
-        print("FINAL Move selected:", play+1)
-        return play
-        
+
     
 if __name__ == "__main__":
-    b1 = Board.buildFromFile("game2.txt")
-    
+    b1 = Board.buildFromFile("game1.txt")
+    print(b1.board)
