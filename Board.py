@@ -1,5 +1,5 @@
 import numpy as np
-
+import random
 
 class Board():
     def __init__(self, rows = 6, cols = 7, turnPlayer = "Y", 
@@ -22,7 +22,7 @@ class Board():
         self.pY = yellowPlayer
         self.pR = redPlayer
         
-        self.move_stack = np.zeros((col*row))
+        self.move_stack = np.zeros((cols*rows))
         self.currentTurn = turnPlayer
         self.stackHead = -1
 
@@ -37,11 +37,12 @@ class Board():
         """
         if pId == "Y":
             self.pY = player
+            
         elif pId == "R":
             self.pR = player
 
 
-    def buildFromFile(filename):
+    def buildFromFile(filename, parameter = None):
         """
         Builds a gamestate from a file
         
@@ -65,12 +66,37 @@ class Board():
             for j in range(len(board[i])):
                 arrBoard[i,j] = board[i][j]
         
-        # TODO: full list of combinations 
+        # TODO: full list of constructors depending on algorithm 
+        if alg == "Term":
+            # Use input from terminal
+            rPlayer = TerminalPlayer()
+            yPlayer = TerminalPlayer()
+        elif alg == "UR":
+            # Uniform Random
+            rPlayer = UniformRandPlayer()
+            yPlayer = UniformRandPlayer()
         
-        return Board()
+        
+        return Board(board=arrBoard, turnPlayer=turn, redPlayer=rPlayer, yellowPlayer=yPlayer)
 
+    def getAvailableSpaces(self):
+        
+
+class TerminalPlayer():
+    def __init__(self):
+        pass
+
+class UniformRandPlayer():
+    def __init__(self):
+        pass
+    
+    def takeTurn(self, board, verbosity):
+        if self.game is None:
+            self.game = board
+        
+        options = self.game.getAvailableSpaces()
+        
+    
 if __name__ == "__main__":
-    b = Board()
-    print(b.board)
-    help(b)
-    b1 = Board.buildFromFile("game1.txt")
+    b1 = Board.buildFromFile("game2.txt")
+    
