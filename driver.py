@@ -25,7 +25,7 @@ def play_game(verbose="None", parameter=0):
     return game_result
 
 if __name__ == "__main__":
-    
-    random.seed(50)
+    # Unseeded randomness
+    #random.seed(50)
     play_game(verbose = 'verbose')
     
