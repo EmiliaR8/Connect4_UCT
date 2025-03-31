@@ -104,6 +104,9 @@ class UniformRandPlayer():
             self.game = board
         
         options = self.game.getAvailableSpaces()
+        play = random.choice(options)
+        print("FINAL Move selected:", play+1)
+        return play
         
     
 if __name__ == "__main__":
