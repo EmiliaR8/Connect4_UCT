@@ -1,5 +1,5 @@
 import random
-from Board import Board
+from board import Board
 from strategy import UniformRandom
 
 def play_game(verbose="None", parameter=0):
