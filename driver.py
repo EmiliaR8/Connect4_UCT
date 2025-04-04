@@ -1,12 +1,18 @@
 import random
 from Board import Board
-from strategy import UniformRandom
+from strategy import UniformRandom, PMCGS, UCT
 
 def play_game(verbose="None", parameter=0):
     """Play a full game of Connect Four with random players"""
     board = Board()
-    board.bindPlayer(UniformRandom(), "R")
-    board.bindPlayer(UniformRandom(), "Y")
+    # board.bindPlayer(UniformRandom(), "R")
+    # board.bindPlayer(UniformRandom(), "Y")
+
+    # board.bindPlayer(PMCGS(), "R")
+    # board.bindPlayer(PMCGS(), "Y")
+
+    board.bindPlayer(UCT(), "R")
+    board.bindPlayer(UCT(), "Y")
     
     game_result = None
     while game_result is None:
