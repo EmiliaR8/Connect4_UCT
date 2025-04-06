@@ -2,7 +2,7 @@ import random
 import math
 
 class UniformRandom:
-    def __init__(self):
+    def __init__(self, sim_num = 0):
         pass
 
     def takeTurn(self, board, verbose="None", parameter=None):
@@ -32,15 +32,19 @@ class PMCGS:
         available_moves = board.getAvailableSpaces()
         if not available_moves:
             raise ValueError("No valid moves available")
-            # Lose?
+            # TODO Lose?
         
         move_stats = {move: [0, 0] for move in available_moves}  # {move: [wi, ni]}
         
+
+        if move_stats[move][1] == 0 and verbose != "None": #FIXME
+            print("NODE ADDED")
+
         for i in range(self.simulations):
             move = random.choice(available_moves)
             temp_board = Board(rows=board.row_size, cols=board.column_size, 
                                turnPlayer=board.currentTurn, board=board.board.copy())
-            result = self.simulate(temp_board, move)
+            result = self.simulate(temp_board, move, verbose)
             
             # Update stats
             move_stats[move][1] += 1  # ni += 1
@@ -49,40 +53,88 @@ class PMCGS:
             elif result == -1 and board.currentTurn == 'R':
                 move_stats[move][0] += 1  # wi += 1 for Red win
             
-            if verbose != "None":
+            if verbose != "None": #FIXME dont know what is supposed to print for each setting of verbose (that part was confusing)
                 print(f"wi: {move_stats[move][0]}\nni: {move_stats[move][1]}\nMove selected: {move + 1}")
+
+        if verbose != "None": #FIXME dont know what is supposed to print for each setting of verbose (that part was confusing)
+            print("\nMove evaluations:")
+            for m in range(7):  # Assuming 7 columns
+                if m in move_stats:
+                    wi, ni = move_stats[m]
+                    value = wi / (ni + 1e-6)
+                    print(f"Move {m + 1}: V={value:.2f} (wi={wi}, ni={ni})")
+                else:
+                    print(f"Move {m + 1}: Null (illegal move)")
+
         
         # Select best move based on win ratio
         best_move = max(available_moves, key=lambda m: move_stats[m][0] / (move_stats[m][1] + 1e-6))
         
-        if verbose != "None":
+        if verbose != "None": #FIXME dont know what is supposed to print for each setting of verbose (that part was confusing)
             print(f"Final move selected: {best_move + 1}")
         
         return best_move
     
-    def simulate(self, board, move):
-        """Performs a random rollout from the given move until the game ends."""
-        board.putPiece(move, board.currentTurn)
-        game_result = board.gameOver(move, board.row_size - 1)
-        current_turn = 'Y' if board.currentTurn == 'R' else 'R'
+    # def simulate(self, board, move):
+    #     """Performs a random rollout from the given move until the game ends."""
+    #     print("\nSIMMULATING\n\n")
+    #     board.putPiece(move, board.currentTurn)
+    #     game_result = board.gameOver(move, board.row_size - 1)
+    #     current_turn = 'Y' if board.currentTurn == 'R' else 'R'
         
+    #     while game_result is None:
+    #         valid_moves = board.getAvailableSpaces()
+    #         if not valid_moves:
+    #             return 0  # Draw
+            
+    #         move = random.choice(valid_moves)
+    #         board.putPiece(move, current_turn)
+    #         game_result = board.gameOver(move, board.row_size - 1)
+    #         current_turn = 'Y' if current_turn == 'R' else 'R'
+        
+    #     if game_result == 1:
+    #         return 1  # Yellow win
+    #     elif game_result == -1:
+    #         return -1  # Red win
+    #     else:
+    #         return 0  #Draw ig
+        
+
+    def simulate(self, board, move, verbose = "None"):
+        print("\nSIMMULATING\n\n")
+        if board.putPiece(move, board.currentTurn) is False:
+            return 0  # Illegal move fallback
+
+        if board.getAvailableSpaces() == []:
+            return 0  # draw if no moves
+
+        if board.currentTurn == 'R':
+            current_turn = 'Y'
+        else:
+            current_turn = 'R'
+
+        moves_trace = [move]
+        game_result = board.gameOver(move, board.row_size - 1)
+
         while game_result is None:
             valid_moves = board.getAvailableSpaces()
             if not valid_moves:
-                return 0  # Draw
-            
+                game_result = 0
+                break
+
             move = random.choice(valid_moves)
             board.putPiece(move, current_turn)
+            moves_trace.append(move)
             game_result = board.gameOver(move, board.row_size - 1)
             current_turn = 'Y' if current_turn == 'R' else 'R'
-        
-        if game_result == 1:
-            return 1  # Yellow win
-        elif game_result == -1:
-            return -1  # Red win
-        else:
-            return 0  #Draw ig
-        
+
+        if verbose != "None":
+            print("Rollout path:", moves_trace)
+            print(f"TERMINAL NODE VALUE: {game_result}")
+
+        return game_result
+
+     
 
 class UCT:
     def __init__(self, simulations=100, exploration=math.sqrt(2)):
