@@ -23,7 +23,11 @@ def play_game(txt_file = "None", verbose="None", parameter=0):
 
     else:
         alg, curr_board, player = read_file(txt_file)
-        board = Board(turnPlayer = player, yellowPlayer = alg, redPlayer = alg, board = curr_board)
+
+        if alg == "UR": #just to ensure that the user does not prompt Uniform Random to go with Verbose != None
+            verbose="None"  #or = 0 idk
+
+        board = Board(turnPlayer = player, yellowPlayer = alg, redPlayer = alg, board = curr_board, sim_num = parameter)
 
     
     game_result = None

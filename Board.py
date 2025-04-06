@@ -4,7 +4,7 @@ from strategy import UniformRandom, PMCGS, UCT
 
 class Board():
     def __init__(self, rows = 6, cols = 7, turnPlayer = "Y", 
-                 yellowPlayer = None, redPlayer = None, board = None):
+                 yellowPlayer = None, redPlayer = None, board = None, sim_num = 100):
         """
             Initializes a gameboard of a given size and player objects
             
@@ -30,13 +30,13 @@ class Board():
 
         # Initialize Yellow player
         if yellowPlayer in player_classes:
-            self.pY = player_classes[yellowPlayer]()  # call constructor
+            self.pY = player_classes[yellowPlayer](sim_num)  # call constructor
         else:
             self.pY = yellowPlayer  # assume it's None
 
         # Initialize Red player
         if redPlayer in player_classes:
-            self.pR = player_classes[redPlayer]()  
+            self.pR = player_classes[redPlayer](sim_num)  
         else:
             self.pR = redPlayer
         
