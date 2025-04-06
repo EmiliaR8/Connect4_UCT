@@ -30,13 +30,13 @@ class Board():
 
         # Initialize Yellow player
         if yellowPlayer in player_classes:
-            self.pY = player_classes[yellowPlayer](sim_num)  # call constructor
+            self.pY = player_classes[yellowPlayer](simulations = sim_num)  # call constructor
         else:
             self.pY = yellowPlayer  # assume it's None
 
         # Initialize Red player
         if redPlayer in player_classes:
-            self.pR = player_classes[redPlayer](sim_num)  
+            self.pR = player_classes[redPlayer](simulations = sim_num)  
         else:
             self.pR = redPlayer
         

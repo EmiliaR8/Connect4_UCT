@@ -10,19 +10,31 @@ def play_game(txt_file = "None", verbose="None", parameter=0):
     if txt_file == "None":
         board = Board()
 
-        #TODO might want to ask what algorithm to run
-        alg = int(input("Please the algorithm you want to use (1: UR, 2: PMCGS, 3:UCT): "))
+        alg = int(input("Please the algorithm you want to use for player 1 RED (1: UR, 2: PMCGS, 3:UCT): "))
         if alg == 1:
             board.bindPlayer(UniformRandom(), "R")
-            board.bindPlayer(UniformRandom(), "Y")
         elif alg == 2:
-            board.bindPlayer(PMCGS(), "R")
-            board.bindPlayer(PMCGS(), "Y")
+            num = int(input("Please the number of simulations for PMCGS: "))
+            board.bindPlayer(PMCGS(simulations = num), "R")
         elif alg == 3:
-            board.bindPlayer(UCT(), "R")
-            board.bindPlayer(UCT(), "Y")
+            alg = int(input("Please the number of simulations for UCT "))
+            board.bindPlayer(UCT(simulations = num), "R")
         else:
             print("wrong")
+
+        alg = int(input("Please the algorithm you want to use for player 2 YELLOW (1: UR, 2: PMCGS, 3:UCT): "))
+        if alg == 1:
+            board.bindPlayer(UniformRandom(), "Y")
+        elif alg == 2:
+            num = int(input("Please the number of simulations for PMCGS: "))
+            board.bindPlayer(PMCGS(simulations = num), "Y")
+        elif alg == 3:
+            num = int(input("Please the number of simulations for UCT: ")) 
+            board.bindPlayer(UCT(simulations = num), "Y")
+        else:
+            print("wrong")
+
+        
 
     else:
         alg, curr_board, player = read_file(txt_file)
