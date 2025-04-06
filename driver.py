@@ -11,15 +11,18 @@ def play_game(txt_file = "None", verbose="None", parameter=0):
         board = Board()
 
         #TODO might want to ask what algorithm to run
-
-        # board.bindPlayer(UniformRandom(), "R")
-        # board.bindPlayer(UniformRandom(), "Y")
-
-        board.bindPlayer(PMCGS(), "R")
-        board.bindPlayer(PMCGS(), "Y")
-
-        # board.bindPlayer(UCT(), "R")
-        # board.bindPlayer(UCT(), "Y")
+        alg = int(input("Please the algorithm you want to use (1: UR, 2: PMCGS, 3:UCT): "))
+        if alg == 1:
+            board.bindPlayer(UniformRandom(), "R")
+            board.bindPlayer(UniformRandom(), "Y")
+        elif alg == 2:
+            board.bindPlayer(PMCGS(), "R")
+            board.bindPlayer(PMCGS(), "Y")
+        elif alg == 3:
+            board.bindPlayer(UCT(), "R")
+            board.bindPlayer(UCT(), "Y")
+        else:
+            print("wrong")
 
     else:
         alg, curr_board, player = read_file(txt_file)
@@ -70,7 +73,7 @@ if __name__ == "__main__":
     #random.seed(50)
     txt_file = input("Please enter Game Board txt file name: ")
     mode = input("Please enter mode you'd prefer (Brief, Verbose, None): ")
-    sim_num = int(input("Please the simmulation amount: "))
+    sim_num = int(input("Please enter the simmulation amount: "))
 
     play_game(verbose = 'verbose')
     # play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game

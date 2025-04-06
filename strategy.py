@@ -23,7 +23,7 @@ class UniformRandom:
         return selected_move
     
 class PMCGS:
-    def __init__(self, simulations=100):
+    def __init__(self, simulations= 50):
         self.simulations = simulations
         self.stats = {}  # Dictionary to store (wi, ni) values for each state
     
@@ -37,8 +37,8 @@ class PMCGS:
         move_stats = {move: [0, 0] for move in available_moves}  # {move: [wi, ni]}
         
 
-        if move_stats[move][1] == 0 and verbose != "None": #FIXME
-            print("NODE ADDED")
+        # if move_stats[move][1] == 0 and verbose != "None": #FIXME the printing of stuff again
+        #     print("NODE ADDED")
 
         for i in range(self.simulations):
             move = random.choice(available_moves)
@@ -134,10 +134,9 @@ class PMCGS:
 
         return game_result
 
-     
-
+    
 class UCT:
-    def __init__(self, simulations=100, exploration=math.sqrt(2)):
+    def __init__(self, simulations= 50, exploration=math.sqrt(2)):
         self.simulations = simulations
         self.exploration = exploration
         self.stats = {}  # Stores (wi, ni) for each state
@@ -150,11 +149,11 @@ class UCT:
         
         move_stats = {move: [0, 0] for move in available_moves}  # {move: [wi, ni]}
         
-        for _ in range(self.simulations):
+        for i in range(self.simulations):
             move = self.select_move(available_moves, move_stats)
             temp_board = Board(rows=board.row_size, cols=board.column_size, 
                                turnPlayer=board.currentTurn, board=board.board.copy())
-            result = self.simulate(temp_board, move)
+            result = self.simulate(temp_board, move, verbose)
             
             # Update stats
             move_stats[move][1] += 1  # ni += 1
@@ -177,19 +176,6 @@ class UCT:
             print(f"Final move selected: {best_move + 1}")
         
         return best_move
-    
-    # def select_move(self, available_moves, move_stats):
-    #     total_visits = sum(move_stats[m][1] for m in available_moves) + 1e-6
-    #     total_visits = max(total_visits, 1e-6)  # Ensure positive
-
-    #     return max(available_moves,
-    #             key=lambda m: (
-    #                 (move_stats[m][0] / (move_stats[m][1] + 1e-6)) +
-    #                 self.exploration * math.sqrt(
-    #                     math.log(total_visits) / (move_stats[m][1] + 1e-6)
-    #                 )
-    #             )
-    #         )
 
     def select_move(self, available_moves, move_stats):
         # First, check for any unvisited moves
@@ -207,20 +193,24 @@ class UCT:
             )
         )
 
-    
-    def simulate(self, board, move):
+    def simulate(self, board, move, verbose="None"):
+        moves_trace = [move]
         board.putPiece(move, board.currentTurn)
         game_result = board.gameOver(move, board.row_size - 1)
         current_turn = 'Y' if board.currentTurn == 'R' else 'R'
-        
+
         while game_result is None:
             valid_moves = board.getAvailableSpaces()
             if not valid_moves:
                 return 0  # Draw
-            
+
             move = random.choice(valid_moves)
+            moves_trace.append(move)
             board.putPiece(move, current_turn)
             game_result = board.gameOver(move, board.row_size - 1)
             current_turn = 'Y' if current_turn == 'R' else 'R'
-        
+
+        if verbose != "None": #FIXME change this logic to whatever the correct version is
+            print("Rollout path:", moves_trace)
+            print(f"TERMINAL NODE VALUE: {game_result}")
         return game_result
