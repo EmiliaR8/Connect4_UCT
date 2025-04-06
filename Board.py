@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from strategy import UniformRandom
+from strategy import UniformRandom, PMCGS, UCT
 
 class Board():
     def __init__(self, rows = 6, cols = 7, turnPlayer = "Y", 
@@ -20,8 +20,25 @@ class Board():
             self.row_size = board.shape[0]
             self.board = board
         
-        self.pY = yellowPlayer
-        self.pR = redPlayer
+
+        # Initialize the players based on alg from text file
+        player_classes = {
+            "UR": UniformRandom,
+            "PMCGS": PMCGS,
+            "UCT": UCT
+        }
+
+        # Initialize Yellow player
+        if yellowPlayer in player_classes:
+            self.pY = player_classes[yellowPlayer]()  # call constructor
+        else:
+            self.pY = yellowPlayer  # assume it's None
+
+        # Initialize Red player
+        if redPlayer in player_classes:
+            self.pR = player_classes[redPlayer]()  
+        else:
+            self.pR = redPlayer
         
         self.move_stack = np.zeros((cols*rows), dtype='i4')
         self.currentTurn = turnPlayer

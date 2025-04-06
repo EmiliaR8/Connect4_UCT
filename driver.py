@@ -1,24 +1,36 @@
 import random
+import numpy
 from Board import Board
 from strategy import UniformRandom, PMCGS, UCT
 
-def play_game(verbose="None", parameter=0):
+def play_game(txt_file = "None", verbose="None", parameter=0):
     """Play a full game of Connect Four with random players"""
-    board = Board()
-    # board.bindPlayer(UniformRandom(), "R")
-    # board.bindPlayer(UniformRandom(), "Y")
 
-    # board.bindPlayer(PMCGS(), "R")
-    # board.bindPlayer(PMCGS(), "Y")
+    #Create the Board, Alg, and Player
+    if txt_file == "None":
+        board = Board()
 
-    board.bindPlayer(UCT(), "R")
-    board.bindPlayer(UCT(), "Y")
+        #TODO might want to ask what algorithm to run
+
+        # board.bindPlayer(UniformRandom(), "R")
+        # board.bindPlayer(UniformRandom(), "Y")
+
+        board.bindPlayer(PMCGS(), "R")
+        board.bindPlayer(PMCGS(), "Y")
+
+        # board.bindPlayer(UCT(), "R")
+        # board.bindPlayer(UCT(), "Y")
+
+    else:
+        alg, curr_board, player = read_file(txt_file)
+        board = Board(turnPlayer = player, yellowPlayer = alg, redPlayer = alg, board = curr_board)
+
     
     game_result = None
     while game_result is None:
         game_result = board.turn(verbose, parameter)
     
-    if verbose != "None":
+    if verbose != "None": #TODO this should be removed since verbose should be used to print info for ALG 2 and 3, winner should be printed in any case
         if game_result == -1:
             print("Red wins!")
         elif game_result == 1:
@@ -30,8 +42,32 @@ def play_game(verbose="None", parameter=0):
     
     return game_result
 
+import numpy as np
+
+
+def read_file(txt_file):
+    with open(txt_file, 'r') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip() != '']
+    
+    alg = lines[0]               # First line is the algorithm
+    player = lines[1]            # Second line is the player
+    board_lines = lines[2:8]     # Next 6 lines are the board
+    
+    board = np.full((6, 7), 'O')  # Default fill
+    for i in range(6):
+        row = board_lines[i].replace(" ", "")  # Strip out any spaces
+        board[i] = list(row)
+    
+    return alg, board, player
+
+
 if __name__ == "__main__":
     # Unseeded randomness
     #random.seed(50)
+    txt_file = input("Please enter Game Board txt file name: ")
+    mode = input("Please enter mode you'd prefer (Brief, Verbose, None): ")
+    sim_num = int(input("Please the simmulation amount: "))
+
     play_game(verbose = 'verbose')
+    # play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game
     
