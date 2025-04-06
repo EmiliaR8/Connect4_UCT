@@ -2,7 +2,7 @@ import random
 import math
 
 class UniformRandom:
-    def __init__(self, sim_num = 0):
+    def __init__(self, simulations = 0):
         pass
 
     def takeTurn(self, board, verbose="None", parameter=None):

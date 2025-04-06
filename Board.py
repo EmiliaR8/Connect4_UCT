@@ -123,6 +123,7 @@ class Board():
         # Index the last instance of 'O' and replace it with the player code
         row = np.where(col == 'O')[0][-1]
         col[row] = player
+        
         return row
     
     def gameOver(self, col, row):

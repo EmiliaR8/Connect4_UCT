@@ -2,6 +2,7 @@ import random
 import numpy
 from Board import Board
 from strategy import UniformRandom, PMCGS, UCT
+import sys
 
 def play_game(txt_file = "None", verbose="None", parameter=0):
     """Play a full game of Connect Four with random players"""
@@ -87,6 +88,6 @@ if __name__ == "__main__":
     mode = input("Please enter mode you'd prefer (Brief, Verbose, None): ")
     sim_num = int(input("Please enter the simmulation amount: "))
 
-    play_game(verbose = 'verbose')
+    play_game(txt_file = txt_file, verbose = 'verbose')
     # play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game
     
