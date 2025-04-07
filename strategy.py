@@ -229,9 +229,9 @@ class STNode():
         return all(move in self.children for move in valid_moves)
 
     def best_child(self, exploration_param, current_turn):
-        """Select the best child node using the UCB formula."""
+        """Select the best move using the UCB formula."""
         best_value = float('-inf')
-        best_node = None
+        best_move = None #Change from best_node to best_move
         total_visits = sum(child.ni for child in self.children.values())
         for move, child in self.children.items():
             if child.ni == 0:
@@ -245,8 +245,8 @@ class STNode():
                 ucb_value = win_rate + exploration
             if ucb_value > best_value:
                 best_value = ucb_value
-                best_node = child
-        return best_node
+                best_move = move #Store move instead of node
+        return best_move #Return move instead of node
 
 #Improved UCT implementation with a traditional tree
 #This version adds a heuristc eval for early game moves selection and adds proper min/max handling
@@ -259,7 +259,8 @@ class UCT_prime:
     def takeTurn(self, board, verbose="None", parameter=None):
         from Board import Board
         
-        if parameter is not None:
+        #Passes different simulation counts when calling takeTurn().
+        if parameter is not None: 
             self.simulations = parameter
             
         available_moves = board.getAvailableSpaces()
@@ -269,23 +270,39 @@ class UCT_prime:
         #Initialize root node if needed
         if self.root is None:
             self.root = STNode()
+
+        # Updating the root based on the opponent's last move 
+        if hasattr(board, 'move_stack') and hasattr(board, 'stackHead') and board.stackHead > 0:
+            last_move = board.move_stack[board.stackHead-1]
+            if last_move in self.root.children:
+                self.root = self.root.children[last_move]
+                self.root.parent = None #Detach from parent
+            else:
+                #If move is not there in the tree, reset the tree
+                self.root = STNode()
+
         
         #Check for immediate wi
         for move in available_moves:
-            temp_board = board.clone()
-            row = temp_board.putPiece(move, temp_board.currentTurn)
-            result = temp_board.gameOver(move, row)
-            
+            row = board.putPiece(move, board.currentTurn)
+            result = board.gameOver(move, row)
+            board.undo() #Undo the move to maintain original board
+
             if (result == 1 and board.currentTurn == 'Y') or (result == -1 and board.currentTurn == 'R'):
-                if verbose != "None":
-                    print("Winning move detected!")
-                    print(f"FINAL Move selected: {move + 1}")
+                #Actually make the winning move
+                row = board.putPiece(move, board.currentTurn)
                 return move
         
+        # Save stack position
+        original_stack_head = board.stackHead if hasattr(board, 'stackHead') else None
+
         #Run simulations using tree search
         for i in range(self.simulations):
-            board_copy = board.clone()
-            self._tree_search(board_copy, self.root, verbose)
+            self._tree_search(board, self.root, verbose)
+            #Restore board to original state
+            if original_stack_head is not None:
+                while board.stackHead > original_stack_head:
+                    board.undo()
             
         #Displaying tree stats if verbose
         if verbose != "None":
@@ -331,21 +348,23 @@ class UCT_prime:
             
         if verbose != "None":
             print(f"FINAL Move selected: {best_move + 1}")
+
+        #Updating the root for the next turn
+        if best_move in self.root.children:
+            self.root = self.root.children[best_move]
+            self.root.parent = None #Detaching from the parent
+        else:
+            new_node = STNode(move=best_move)
+            self.root.children[best_move] = new_node
+            self.root = new_node
+            self.root.parent = None
             
         return best_move
-    
-    def _board_to_state(self, board):
-        """Convert board to a hashable state string"""
-        state = ""
-        for r in range(board.row_size):
-            for c in range(board.column_size):
-                state += board.board[r, c]
-        return state
     
     def _tree_search(self, board, node, verbose):
         """Perform one iteration of UCT tree search"""
         #SELECTION phase
-        visited_nodes = [] #Track nodes visited
+        visited_nodes = [] #Track nodes visited for backpropagation as this allows direct access to all nodes without the need of repeated parent lookups.
         current_node = node
         
         while True:
@@ -391,8 +410,8 @@ class UCT_prime:
                 return
             
             #SELECTION to use UCB to choose move
-            current_node = current_node.best_child(self.exploration, board.currentTurn)
-            move = current_node.move
+            move = current_node.best_child(self.exploration, board.currentTurn)
+            current_node = current_node.children[move]
             
             if verbose == "Verbose":
                 #Print UCB values
@@ -404,9 +423,12 @@ class UCT_prime:
                         if board.currentTurn == 'R':
                             win_rate = 1 - win_rate
                         
-                        total_visits = sum(c.ni for c in node.children.values() if c.ni > 0)
-                        exploration = self.exploration * math.sqrt(math.log(total_visits) / child.ni if child.ni > 0 else 1)
-                        ucb = win_rate + exploration
+                        total_visits = sum(c.ni for c in node.children.values())
+                        if child.ni == 0:
+                            ucb = float('inf')
+                        else:
+                            exploration = self.exploration * math.sqrt(math.log(total_visits) / child.ni)
+                            ucb = win_rate + exploration
                         print(f"V{m+1}: {ucb:.2f}")
                     else:
                         print(f"V{m+1}: Null")
