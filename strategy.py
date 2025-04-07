@@ -215,13 +215,47 @@ class PMCGS:
             print(f"TERMINAL NODE VALUE: {game_result}")
         return game_result'''
 
-#Improved UCT implementation with a tree
+
+class STNode():
+    def __init__(self, state, move=None, parent=None):
+        self.state = state #A hashable representation of the board state.
+        self.move = move   #The move (column index) that led to this state.
+        self.parent = parent #Pointer to the parent node.
+        self.children = {} #Dictionary mapping move -> STNode.
+        self.wins = 0 #Wins accumulated through this node.
+        self.visits = 0 #Number of times this node was visited.
+
+    def is_fully_expanded(self, valid_moves):
+        """Returns True if every valid move from this node has been expanded."""
+        return all(move in self.children for move in valid_moves)
+
+    def best_child(self, exploration_param, current_turn):
+        """Select the best child node using the UCB formula."""
+        best_value = float('-inf')
+        best_node = None
+        total_visits = sum(child.visits for child in self.children.values())
+        for move, child in self.children.items():
+            if child.visits == 0:
+                ucb_value = float('inf')
+            else:
+                win_rate = child.wins / child.visits
+                #Adjust win rate for MIN player (assuming 'R' is MIN)
+                if current_turn == 'R':
+                    win_rate = 1 - win_rate
+                exploration = exploration_param * math.sqrt(math.log(total_visits) / child.visits)
+                ucb_value = win_rate + exploration
+            if ucb_value > best_value:
+                best_value = ucb_value
+                best_node = child
+        return best_node
+
+#Improved UCT implementation with a traditional tree
 #This version adds a heuristc eval for early game moves selection and adds proper min/max handling
-class UCT:
+class UCT_prime:
     def __init__(self, simulations=500, exploration=math.sqrt(2)):
         self.simulations = simulations
         self.exploration = exploration
-        self.tree = {} #State -> [wins, visits, {move -> [wins, visits]}]
+        self.root = None #Root node of the search tree
     
     def takeTurn(self, board, verbose="None", parameter=None):
         from Board import Board
@@ -237,8 +271,8 @@ class UCT:
         root_state = self._board_to_state(board)
         
         #Initialize root node if needed
-        if root_state not in self.tree:
-            self.tree[root_state] = [0, 0, {}] #wins, visits, children
+        if self.root is None or self.root.state != root_state:
+            self.root = STNode(root_state)
         
         #Check for immediate wins
         for move in available_moves:
@@ -255,15 +289,15 @@ class UCT:
         #Run simulations using tree search
         for i in range(self.simulations):
             board_copy = board.clone()
-            self._tree_search(board_copy, root_state, verbose)
+            self._tree_search(board_copy, self.root, verbose)
             
         #Displaying tree stats if verbose
         if verbose != "None":
             for col in range(7):
                 if col in available_moves:
-                    if col in self.tree[root_state][2]:
-                        wins, visits = self.tree[root_state][2][col]
-                        value = wins / visits
+                    if col in self.root.children:
+                        child = self.root.children[col]
+                        value = child.wins / child.visits if child.visits > 0 else 0
                         print(f"Column {col+1}: {value:.2f}")
                     else:
                         print(f"Column {col+1}: Null")
@@ -275,9 +309,9 @@ class UCT:
         best_value = float('-inf') if board.currentTurn == 'Y' else float('inf')
         
         for move in available_moves:
-            if move in self.tree[root_state][2]:
-                wins, visits = self.tree[root_state][2][move]
-                value = wins / visits
+            if move in self.root.children:
+                child = self.root.children[move]
+                value = child.wins / child.visits
                 
                 if board.currentTurn == 'Y': #MAX player
                     if value > best_value:
@@ -312,84 +346,76 @@ class UCT:
                 state += board.board[r, c]
         return state
     
-    def _tree_search(self, board, state, verbose):
+    def _tree_search(self, board, node, verbose):
         """Perform one iteration of UCT tree search"""
         #SELECTION phase
-        visited_path = [] #Track states and moves visited
-        current_state = state
+        visited_nodes = [] #Track nodes visited
+        current_node = node
         
         while True:
-            visited_path.append(current_state)
+            visited_nodes.append(current_node)
             
             #Getting available moves
             available_moves = board.getAvailableSpaces()
             if not available_moves:
                 break #Terminal state
                 
-            #Checking if this is a leaf node
-            if current_state not in self.tree:
-                #Add new node to the tree
-                self.tree[current_state] = [0, 0, {}]
-                break
-                
-            #Checking if all children are in the tree
-            unexplored_moves = [m for m in available_moves if m not in self.tree[current_state][2]]
-            if unexplored_moves:
+            #Checking if this node is fully expanded
+            if not current_node.is_fully_expanded(available_moves):
                 #EXPANSION to choose unexplored move
+                unexplored_moves = [m for m in available_moves if m not in current_node.children]
                 move = random.choice(unexplored_moves)
                 if verbose == "Verbose":
                     print("NODE ADDED")
-                
-                #Initialize new child
-                self.tree[current_state][2][move] = [0, 0]
                 
                 #Make move
                 row = board.putPiece(move, board.currentTurn)
                 
                 #Check for terminal state
                 result = board.gameOver(move, row)
+                
+                #Create new child node
+                new_state = self._board_to_state(board)
+                new_node = STNode(new_state, move=move, parent=current_node)
+                current_node.children[move] = new_node
+                visited_nodes.append(new_node)
+                
                 if result is not None:
                     #Backpropagate result
-                    self.backpropagate(visited_path, [move], result)
+                    self.backpropagate(visited_nodes, result)
                     return
                     
                 #Switch player
                 board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
                 
-                #Update state
-                next_state = self._board_to_state(board)
-                visited_path.append(move)
-                visited_path.append(next_state)
-                
                 #Do SIMULATION phase
-                result = self._simulate(board, verbose)
+                result = self.simulate(board, verbose)
                 
                 #Backpropagate result
-                self.backpropagate(visited_path, [move], result)
+                self.backpropagate(visited_nodes, result)
                 return
             
             #SELECTION to use UCB to choose move
-            move = self._select_ucb_move(current_state, board.currentTurn, available_moves)
+            current_node = current_node.best_child(self.exploration, board.currentTurn)
+            move = current_node.move
             
             if verbose == "Verbose":
                 #Print UCB values
-                current_visits = sum(self.tree[current_state][2][m][1] for m in self.tree[current_state][2])
                 for m in range(7):
-                    if m in self.tree[current_state][2]:
-                        wins, visits = self.tree[current_state][2][m]
-                        win_rate = wins / visits
+                    if m in node.children:
+                        child = node.children[m]
+                        win_rate = child.wins / child.visits if child.visits > 0 else 0
                         #Adjust for MIN player
                         if board.currentTurn == 'R':
                             win_rate = 1 - win_rate
                         
-                        exploration = self.exploration * math.sqrt(math.log(current_visits) / visits)
+                        total_visits = sum(c.visits for c in node.children.values() if c.visits > 0)
+                        exploration = self.exploration * math.sqrt(math.log(total_visits) / child.visits if child.visits > 0 else 1)
                         ucb = win_rate + exploration
                         print(f"V{m+1}: {ucb:.2f}")
                     else:
                         print(f"V{m+1}: Null")
                 print(f"Move selected: {move+1}")
-            
-            visited_path.append(move)
             
             #Make move
             row = board.putPiece(move, board.currentTurn)
@@ -398,50 +424,20 @@ class UCT:
             result = board.gameOver(move, row)
             if result is not None:
                 #Backpropagate result
-                self.backpropagate(visited_path, [], result)
+                self.backpropagate(visited_nodes, result)
                 return
                 
             #Switch player
             board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
             
-            #Update state
-            current_state = self._board_to_state(board)
-            
         #If we reach here, we're at a terminal state or leaf node
         #We do SIMULATION phase again
-        result = self._simulate(board, verbose)
+        result = self.simulate(board, verbose)
         
         #Backpropagate result
-        self.backpropagate(visited_path, [], result)
+        self.backpropagate(visited_nodes, result)
     
-    def _select_ucb_move(self, state, current_turn, available_moves):
-        """Select move using UCB formula"""
-        children = self.tree[state][2]
-        total_visits = sum(children[m][1] for m in children)
-        
-        best_move = None
-        best_value = float('-inf')
-        
-        for move in available_moves:
-            if move in children:
-                wins, visits = children[move]
-                win_rate = wins / visits
-                
-                #Adjust for MIN player
-                if current_turn == 'R':
-                    win_rate = 1 - win_rate
-                    
-                #UCB formula
-                exploration = self.exploration * math.sqrt(math.log(total_visits) / visits)
-                ucb_value = win_rate + exploration
-                
-                if ucb_value > best_value:
-                    best_value = ucb_value
-                    best_move = move
-        
-        return best_move
-    
-    def _simulate(self, board, verbose):
+    def simulate(self, board, verbose):
         """Perform a simulation with heuristic guidance"""
         current_turn = board.currentTurn
         playout_depth = 0
@@ -467,7 +463,7 @@ class UCT:
                         else:
                             continue
                     
-                    board.undo()  #Undo the move to maintain the board state
+                    board.undo() #Undo the move to maintain the board state
             
             #Early game heuristic
             if playout_depth < 4:
@@ -498,32 +494,15 @@ class UCT:
             current_turn = 'R' if current_turn == 'Y' else 'Y'
             playout_depth += 1
     
-    def backpropagate(self, visited_states, visited_moves, result):
+    def backpropagate(self, visited_nodes, result):
         """Update statistics for all visited nodes"""
-        #Updating states
-        for i, state in enumerate(visited_states):
-            self.tree[state][1] += 1 #Increment visits
+        for node in visited_nodes:
+            node.visits += 1
             
             #Updating wins based on result
             if result == 1: #Yellow win
-                self.tree[state][0] += 1
+                node.wins += 1
             elif result == -1: #Red win
                 pass #0 wins for Yellow
             else: #Draw
-                self.tree[state][0] += 0.5
-                
-            #Update children if applicable
-            if i < len(visited_states) - 1 and i < len(visited_moves):
-                move = visited_moves[i]
-                self.tree[state][2][move][1] += 1 #Increment visits
-                
-                #Update wins based on result
-                if result == 1: #Yellow win
-                    self.tree[state][2][move][0] += 1
-                elif result == -1: #Red win
-                    pass #0 wins for Yellow 
-                else: #Draw
-                    self.tree[state][2][move][0] += 0.5
-
-class STNode():
-    pass
+                node.wins += 0.5
