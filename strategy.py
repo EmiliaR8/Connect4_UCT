@@ -214,7 +214,6 @@ class UCT:
         self.root = None
 
     def takeTurn(self, board, verbose="None", parameter=None):
-        from Board import Board
 
         if parameter is not None:
             self.simulations = parameter
