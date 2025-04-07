@@ -179,6 +179,237 @@ class UCT:
         return game_result
 '''
 
+class STNode_():
+    def __init__(self, move=None, parent=None):
+        self.move = move
+        self.parent = parent
+        self.children = {}
+        self.wi = 0
+        self.ni = 0
+
+    def is_fully_expanded(self, valid_moves):
+        return all(move in self.children for move in valid_moves)
+
+    def best_child(self, exploration_param):
+        best_value = float('-inf')
+        best_move = None
+        total_visits = sum(child.ni for child in self.children.values())
+        for move, child in self.children.items():
+            if child.ni == 0:
+                ucb_value = float('inf')
+            else:
+                win_rate = child.wi / child.ni
+                exploration = exploration_param * math.sqrt(math.log(total_visits) / child.ni)
+                ucb_value = win_rate + exploration
+            if ucb_value > best_value:
+                best_value = ucb_value
+                best_move = move
+        return best_move
+
+
+class UCT:
+    def __init__(self, simulations=500, exploration=math.sqrt(2)):
+        self.simulations = simulations
+        self.exploration = exploration
+        self.root = None
+
+    def takeTurn(self, board, verbose="None", parameter=None):
+        from Board import Board
+
+        if parameter is not None:
+            self.simulations = parameter
+
+        available_moves = board.getAvailableSpaces()
+        if not available_moves:
+            raise ValueError("No valid moves available")
+
+        if self.root is None:
+            self.root = STNode_()
+
+        self.root = STNode_()  # Reset the tree every turn (no persistence)
+
+        for _ in range(self.simulations):
+            self._tree_search(board, self.root)
+
+        best_move = None
+        best_value = float('-inf')
+
+        print(available_moves)
+        
+        for move in available_moves:
+            if move in self.root.children:
+                child = self.root.children[move]
+                value = child.wi / child.ni if child.ni > 0 else 0
+                if value > best_value:
+                    best_value = value
+                    best_move = move
+
+        if best_move is None:
+            best_move = random.choice(available_moves)
+            print("we hit random move")
+
+        return best_move
+
+    # def _tree_search(self, board, node):
+    #     from Board import Board
+    #     visited_nodes = []
+    #     current_node = node
+
+    #     while True:
+    #         visited_nodes.append(current_node)
+    #         available_moves = board.getAvailableSpaces()
+    #         if not available_moves:
+    #             break
+
+    #         if not current_node.is_fully_expanded(available_moves): #Expansion phase
+    #             unexplored_moves = [m for m in available_moves if m not in current_node.children]
+                
+    #             for move in unexplored_moves:
+    #                 # Only play if the column is not full       FIXME
+    #                 col = board.board[:, move]
+    #                 if 'O' not in col:
+    #                     continue  # column is full, skip
+
+    #                 row = board.putPiece(move, board.currentTurn)
+    #                 result = board.gameOver(move, row)
+
+    #                 if result is not None:
+    #                     new_node = STNode_(move=move, parent=current_node)
+    #                     current_node.children[move] = new_node
+    #                     visited_nodes.append(new_node)
+    #                     self.backpropagate(visited_nodes, result)
+    #                     return
+    #             # move = random.choice(unexplored_moves)
+    #             # row = board.putPiece(move, board.currentTurn)
+    #             # result = board.gameOver(move, row)
+
+    #             new_node = STNode_(move=move, parent=current_node)
+    #             current_node.children[move] = new_node
+
+    #             # if result is not None:    FIXME
+    #             #     self.backpropagate(visited_nodes, result)
+    #             #     return
+
+    #             board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
+    #             result = self.simulate(board)
+    #             self.backpropagate(visited_nodes, result)
+    #             return
+
+    #         #Tree policy phase
+    #         move = current_node.best_child(self.exploration)
+    #         current_node = current_node.children[move]
+            
+    #         # Skip move if the column is full  FIXME
+    #         col = board.board[:, move]
+    #         if 'O' not in col:
+    #             return  # invalid move, abort this simulation
+
+    #         row = board.putPiece(move, board.currentTurn)
+    #         result = board.gameOver(move, row)
+    #         if result is not None:
+    #             self.backpropagate(visited_nodes, result)
+    #             return
+
+    #         board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
+
+    #     result = self.simulate(board)
+    #     self.backpropagate(visited_nodes, result)
+
+    def _tree_search(self, board, node):
+        from Board import Board
+        visited_nodes = []
+        current_node = node
+
+        while True:
+            visited_nodes.append(current_node)
+            available_moves = board.getAvailableSpaces()
+
+
+            print("This is the board" ,board.board)
+            print("These are the available moves", available_moves)
+            breakpoint()
+
+
+
+            if not available_moves:
+                break
+
+            if not current_node.is_fully_expanded(available_moves):  # Expansion phase
+                unexplored_moves = [m for m in available_moves if m not in current_node.children]
+
+                for move in unexplored_moves:
+                    col = board.board[:, move]
+                    print("column that we are going to explore",col)
+                    if 'O' not in col:
+                        print("is full\n\n")
+                        continue  # column is full, skip this move
+                
+                    row = board.putPiece(move, board.currentTurn)
+                    result = board.gameOver(move, row)
+
+                    new_node = STNode_(move=move, parent=current_node)
+                    current_node.children[move] = new_node
+                    visited_nodes.append(new_node)
+
+                    if result is not None:
+                        self.backpropagate(visited_nodes, result)
+                        return
+
+                    board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
+                    result = self.simulate(board)
+                    self.backpropagate(visited_nodes, result)
+                    return  # Exit after expanding one node
+
+                # If no valid unexplored moves were available, abort this simulation
+                return
+
+            # Tree policy phase
+            move = current_node.best_child(self.exploration)
+            current_node = current_node.children[move]
+
+            # Skip move if the column is full
+            col = board.board[:, move]
+            print("choson move column:", col)
+            if 'O' not in col:
+                print("is full \n\n")
+                return  # invalid move, abort this simulation
+
+            row = board.putPiece(move, board.currentTurn)
+            result = board.gameOver(move, row)
+            if result is not None:
+                self.backpropagate(visited_nodes, result)
+                return
+
+            board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
+
+        # If the while loop ends with no result (e.g. full board), run a simulation
+        result = self.simulate(board)
+        self.backpropagate(visited_nodes, result)
+
+
+    def simulate(self, board):
+        current_turn = board.currentTurn
+        while True:
+            valid_moves = board.getAvailableSpaces()
+            if not valid_moves:
+                return 0
+            move = random.choice(valid_moves)
+            row = board.putPiece(move, current_turn)
+            result = board.gameOver(move, row)
+            if result is not None:
+                return result
+            current_turn = 'R' if current_turn == 'Y' else 'Y'
+
+    def backpropagate(self, visited_nodes, result):
+        for node in visited_nodes:
+            node.ni += 1
+            if result == 1:
+                node.wi += 1
+            elif result == 0:
+                node.wi += 0.5
+
+
+
 class GTNode:
     def __init__(self, parent = None):
         self.parent = parent
@@ -311,7 +542,9 @@ class UCT_prime:
         for move in available_moves:
             if move in self.root.children:
                 child = self.root.children[move]
-                value = child.wi / child.ni
+                print(child.wi, child.ni)
+
+                value = child.wi / child.ni  #FIXME should we set value to inf or to 0 when we havent explored this node yet?
                 
                 if board.currentTurn == 'Y': #MAX player
                     if value > best_value:

@@ -1,41 +1,56 @@
 import numpy as np
 from Board import Board
-from strategy import UniformRandom, PMCGS, UCT
+from strategy import UniformRandom, PMCGS, UCT, UCT_prime
 from collections import defaultdict
 
 
-# def play_game():
-#     #generate empty board 
-#     board = Board()
+def test():
+    #generate empty board 
+    board = Board()
     
+    alg = int(input("Please the algorithm you want to use for player 1 RED (1: UR, 2: PMCGS, 3:UCT): "))
+    if alg == 1:
+        board.bindPlayer(UniformRandom(), "R")
+    elif alg == 2:
+        num = int(input("Please the number of simulations for PMCGS: "))
+        board.bindPlayer(PMCGS(simulations = num), "R")
+    elif alg == 3:
+        num = int(input("Please the number of simulations for UCT "))
+        board.bindPlayer(UCT(simulations = num), "R")
+    elif alg == 4:
+        num = int(input("Please the number of simulations for UCT "))
+        board.bindPlayer(UCT_prime(simulations = num), "R")
+    else:
+        print("wrong")
 
-#     alg = int(input("Please the algorithm you want to use for player 1 RED (1: UR, 2: PMCGS, 3:UCT): "))
-#     if alg == 1:
-#         board.bindPlayer(UniformRandom(), "R")
-#     elif alg == 2:
-#         num = int(input("Please the number of simulations for PMCGS: "))
-#         board.bindPlayer(PMCGS(simulations = num), "R")
-#     elif alg == 3:
-#         alg = int(input("Please the number of simulations for UCT "))
-#         board.bindPlayer(UCT(simulations = num), "R")
-#     else:
-#         print("wrong")
+    alg = int(input("Please the algorithm you want to use for player 2 YELLOW (1: UR, 2: PMCGS, 3:UCT): "))
+    if alg == 1:
+        board.bindPlayer(UniformRandom(), "Y")
+    elif alg == 2:
+        num = int(input("Please the number of simulations for PMCGS: "))
+        board.bindPlayer(PMCGS(simulations = num), "Y")
+    elif alg == 3:
+        num = int(input("Please the number of simulations for UCT_prime: ")) 
+        board.bindPlayer(UCT(simulations = num), "Y")
+    elif alg == 4:
+        num = int(input("Please the number of simulations for UCT_prime: ")) 
+        board.bindPlayer(UCT_prime(simulations = num), "Y")
+    else:
+        print("wrong")
 
-#     alg = int(input("Please the algorithm you want to use for player 2 YELLOW (1: UR, 2: PMCGS, 3:UCT): "))
-#     if alg == 1:
-#         board.bindPlayer(UniformRandom(), "Y")
-#     elif alg == 2:
-#         num = int(input("Please the number of simulations for PMCGS: "))
-#         board.bindPlayer(PMCGS(simulations = num), "Y")
-#     elif alg == 3:
-#         num = int(input("Please the number of simulations for UCT: ")) 
-#         board.bindPlayer(UCT(simulations = num), "Y")
-#     else:
-#         print("wrong")
+    game_result = None
+    while game_result is None:
+        game_result = board.turn(verbosity = "none", parameter = num)
 
-#     game_result = None
-#     while game_result is None:
-#         game_result = board.turn(verbose = "none", parameter = num)
+     #TODO this should be removed since verbose should be used to print info for ALG 2 and 3, winner should be printed in any case
+    if game_result == -1:
+        print("Red wins!")
+    elif game_result == 1:
+        print("Yellow wins!")
+    else:
+        print("Draw!")
+    
+    print(board.board)
 
 
 def run_tournament():
@@ -102,4 +117,5 @@ def run_tournament():
         print()
 
 
-run_tournament()
+# run_tournament()
+test()
