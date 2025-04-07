@@ -145,6 +145,8 @@ class Board():
         Returns: -1 for Red win, 1 for Yellow win, 0 for draw, None if game continues
         """
         player = self.board[row, col]
+        if player == 'O':
+            return None
         # Horizontal check
         for c in range(max(0, col - 3), min(col + 1, self.column_size - 3)):
             if (self.board[row, c] == player and 
