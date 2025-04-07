@@ -311,7 +311,11 @@ class UCT_prime:
         for move in available_moves:
             if move in self.root.children:
                 child = self.root.children[move]
-                value = child.wi / child.ni
+                if child.ni > 0:
+                    value = child.wi / child.ni
+                else:
+                    #Set a value that won't be chosen by current player
+                    value = float('-inf') if board.currentTurn == 'Y' else float('inf')
                 
                 if board.currentTurn == 'Y': #MAX player
                     if value > best_value:
