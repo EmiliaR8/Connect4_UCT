@@ -216,5 +216,21 @@ class UCT:
             print(f"TERMINAL NODE VALUE: {game_result}")
         return game_result
 
-class STNode():
-    pass
+class GTNode():
+    parent = None
+    wi = 0
+    ni = 0
+    
+    def __init__(self, parent):
+        self.parent = parent
+        self.children = {i:None for i in range(7)}
+    
+    def unexplored_children(self, available):
+        """
+        Takes a list of available moves and checks 
+        if any children are unexplored (have None as in children)
+        """
+        for i in available:
+            if self.children[i] is None:
+                return True
+        return False
