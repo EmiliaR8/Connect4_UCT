@@ -271,11 +271,14 @@ class UCT_prime:
         if self.root is None:
             self.root = STNode()
 
-        # Updating the root based on the opponent's last move 
+        #Updating the root based on the opponent's last move 
         if hasattr(board, 'move_stack') and hasattr(board, 'stackHead') and board.stackHead > 0:
-            last_move = board.move_stack[board.stackHead-1]
-            if last_move in self.root.children:
-                self.root = self.root.children[last_move]
+            last_encoded_move = board.move_stack[board.stackHead-1]
+            #Decode the move, extracting just the column from the encoded move
+            last_col = last_encoded_move % board.column_size #Using modulus to get the column
+            
+            if last_col in self.root.children:
+                self.root = self.root.children[last_col]
                 self.root.parent = None #Detach from parent
             else:
                 #If move is not there in the tree, reset the tree
@@ -289,8 +292,10 @@ class UCT_prime:
             board.undo() #Undo the move to maintain original board
 
             if (result == 1 and board.currentTurn == 'Y') or (result == -1 and board.currentTurn == 'R'):
-                #Actually make the winning move
-                row = board.putPiece(move, board.currentTurn)
+                #Return the winning move
+                if verbose != "None":
+                    print("Winning move found!")
+                    print(f"FINAL Move selected: {move + 1}")
                 return move
         
         # Save stack position
