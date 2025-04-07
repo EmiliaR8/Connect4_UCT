@@ -218,8 +218,8 @@ class UCT:
         if parameter is not None:
             self.simulations = parameter
 
-        available_moves = board.getAvailableSpaces()
-        if not available_moves:
+        # available_moves = board.getAvailableSpaces()
+        if not board.getAvailableSpaces():
             raise ValueError("No valid moves available")
 
         if self.root is None:
@@ -233,9 +233,9 @@ class UCT:
         best_move = None
         best_value = float('-inf')
 
-        print(available_moves)
+        # print(available_moves)
         
-        for move in available_moves:
+        for move in board.getAvailableSpaces():
             if move in self.root.children:
                 child = self.root.children[move]
                 value = child.wi / child.ni if child.ni > 0 else 0
@@ -244,75 +244,10 @@ class UCT:
                     best_move = move
 
         if best_move is None:
-            best_move = random.choice(available_moves)
+            best_move = random.choice(board.getAvailableSpaces())
             print("we hit random move")
 
         return best_move
-
-    # def _tree_search(self, board, node):
-    #     from Board import Board
-    #     visited_nodes = []
-    #     current_node = node
-
-    #     while True:
-    #         visited_nodes.append(current_node)
-    #         available_moves = board.getAvailableSpaces()
-    #         if not available_moves:
-    #             break
-
-    #         if not current_node.is_fully_expanded(available_moves): #Expansion phase
-    #             unexplored_moves = [m for m in available_moves if m not in current_node.children]
-                
-    #             for move in unexplored_moves:
-    #                 # Only play if the column is not full       FIXME
-    #                 col = board.board[:, move]
-    #                 if 'O' not in col:
-    #                     continue  # column is full, skip
-
-    #                 row = board.putPiece(move, board.currentTurn)
-    #                 result = board.gameOver(move, row)
-
-    #                 if result is not None:
-    #                     new_node = STNode_(move=move, parent=current_node)
-    #                     current_node.children[move] = new_node
-    #                     visited_nodes.append(new_node)
-    #                     self.backpropagate(visited_nodes, result)
-    #                     return
-    #             # move = random.choice(unexplored_moves)
-    #             # row = board.putPiece(move, board.currentTurn)
-    #             # result = board.gameOver(move, row)
-
-    #             new_node = STNode_(move=move, parent=current_node)
-    #             current_node.children[move] = new_node
-
-    #             # if result is not None:    FIXME
-    #             #     self.backpropagate(visited_nodes, result)
-    #             #     return
-
-    #             board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
-    #             result = self.simulate(board)
-    #             self.backpropagate(visited_nodes, result)
-    #             return
-
-    #         #Tree policy phase
-    #         move = current_node.best_child(self.exploration)
-    #         current_node = current_node.children[move]
-            
-    #         # Skip move if the column is full  FIXME
-    #         col = board.board[:, move]
-    #         if 'O' not in col:
-    #             return  # invalid move, abort this simulation
-
-    #         row = board.putPiece(move, board.currentTurn)
-    #         result = board.gameOver(move, row)
-    #         if result is not None:
-    #             self.backpropagate(visited_nodes, result)
-    #             return
-
-    #         board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
-
-    #     result = self.simulate(board)
-    #     self.backpropagate(visited_nodes, result)
 
     def _tree_search(self, board, node):
         from Board import Board
@@ -323,12 +258,9 @@ class UCT:
             visited_nodes.append(current_node)
             available_moves = board.getAvailableSpaces()
 
-
             print("This is the board" ,board.board)
             print("These are the available moves", available_moves)
             # breakpoint()
-
-
 
             if not available_moves:
                 break
