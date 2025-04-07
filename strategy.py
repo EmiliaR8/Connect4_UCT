@@ -25,116 +25,78 @@ class UniformRandom:
 class PMCGS:
     def __init__(self, simulations= 50):
         self.simulations = simulations
-        self.stats = {}  # Dictionary to store (wi, ni) values for each state
+        
     
     def takeTurn(self, board, verbose="None", parameter=None):
-        from Board import Board # Had to import here because of circular dependency
-        available_moves = board.getAvailableSpaces()
-        if not available_moves:
-            raise ValueError("No valid moves available")
-            # TODO Lose?
-        
-        move_stats = {move: [0, 0] for move in available_moves}  # {move: [wi, ni]}
-        
-
-        # if move_stats[move][1] == 0 and verbose != "None": #FIXME the printing of stuff again
-        #     print("NODE ADDED")
-
+        # Initialization
+        root = GTNode()
+        return_depth = board.stackHead
+        next_turn = {"Y":"R","R":"Y"}
+        current_team = board.currentTurn
+        # Run simulations to build tree
         for i in range(self.simulations):
-            move = random.choice(available_moves)
-            temp_board = Board(rows=board.row_size, cols=board.column_size, 
-                               turnPlayer=board.currentTurn, board=board.board.copy())
-            result = self.simulate(temp_board, move, verbose)
+            # Tree policy random traversal
+            # Node that tracks where we are in the tree
+            curr = root
+            in_tree = True
+            curr_turn = board.currentTurn
             
-            # Update stats
-            move_stats[move][1] += 1  # ni += 1
-            if result == 1 and board.currentTurn == 'Y':
-                move_stats[move][0] += 1  # wi += 1 for Yellow win
-            elif result == -1 and board.currentTurn == 'R':
-                move_stats[move][0] += 1  # wi += 1 for Red win
+            while in_tree:
+                # Get the next move
+                move = random.choice(board.getAvailableSpaces())
+                # If selected a move that is not in tree
+                if curr.children[move] is None:
+                    # Escape tree policy
+                    in_tree = False
+                    curr.children[move] = GTNode(curr)
+                    
+                curr = curr.children[move]
+                # Make move on board
+                # Store the row of last move for gameOver checking
+                last_row = board.putPiece(move, curr_turn)
+                # Change player
+                curr_turn = next_turn[curr_turn]
+                # Check if we have won the game During tree policy
+                result = board.gameOver(move, last_row)
+                if result is not None:
+                    in_tree = False
+            # Rollout
+            # Continue until the end of the game
+            while result is None:
+                # Rollout policy is random moves
+                move = random.choice(board.getAvailableSpaces())
+                last_row = board.putPiece(move, curr_turn)
+                curr_turn = next_turn[curr_turn]
+                
+                result = board.gameOver(move, last_row)
             
-            if verbose != "None": #FIXME dont know what is supposed to print for each setting of verbose (that part was confusing)
-                print(f"wi: {move_stats[move][0]}\nni: {move_stats[move][1]}\nMove selected: {move + 1}")
-
-        if verbose != "None": #FIXME dont know what is supposed to print for each setting of verbose (that part was confusing)
-            print("\nMove evaluations:")
-            for m in range(7):  # Assuming 7 columns
-                if m in move_stats:
-                    wi, ni = move_stats[m]
-                    value = wi / (ni + 1e-6)
-                    print(f"Move {m + 1}: V={value:.2f} (wi={wi}, ni={ni})")
-                else:
-                    print(f"Move {m + 1}: Null (illegal move)")
-
+            # Backpropogate
+            while curr.parent is not None:
+                curr.ni += 1
+                curr.wi += result
+                curr = curr.parent
+            # Undo moves
+            while board.stackHead > return_depth:
+                board.undo()
+        # Choose the best
+        # Check to make sure all moves have been expanded at least once
+        for i in board.getAvailableSpaces():
+            # If a child hasn't been expanded, it will be None
+            if root.children[i] is None:
+                # Create a new node
+                new_child = GTNode(root)
+                # Give it a usage 
+                new_child.ni = 1
+                # Initialize it as the worst move for a player, red is min, so make it 1
+                # Yellow is max, so make it -1
+                new_child.wi = {"R":1, "Y":-1}[current_team]
+                root.children[i] = new_child
         
-        # Select best move based on win ratio
-        best_move = max(available_moves, key=lambda m: move_stats[m][0] / (move_stats[m][1] + 1e-6))
-        
-        if verbose != "None": #FIXME dont know what is supposed to print for each setting of verbose (that part was confusing)
-            print(f"Final move selected: {best_move + 1}")
-        
+        # Take the best move depending on if the current player is red or yellow
+        # Red is min, so take min
+        # Yellow is max, so take max
+        best_move = ({"R":min,"Y":max}[current_team])(board.getAvailableSpaces(), key = lambda i: root.children[i].wi/(root.children[i].ni))
         return best_move
-    
-    # def simulate(self, board, move):
-    #     """Performs a random rollout from the given move until the game ends."""
-    #     print("\nSIMMULATING\n\n")
-    #     board.putPiece(move, board.currentTurn)
-    #     game_result = board.gameOver(move, board.row_size - 1)
-    #     current_turn = 'Y' if board.currentTurn == 'R' else 'R'
-        
-    #     while game_result is None:
-    #         valid_moves = board.getAvailableSpaces()
-    #         if not valid_moves:
-    #             return 0  # Draw
-            
-    #         move = random.choice(valid_moves)
-    #         board.putPiece(move, current_turn)
-    #         game_result = board.gameOver(move, board.row_size - 1)
-    #         current_turn = 'Y' if current_turn == 'R' else 'R'
-        
-    #     if game_result == 1:
-    #         return 1  # Yellow win
-    #     elif game_result == -1:
-    #         return -1  # Red win
-    #     else:
-    #         return 0  #Draw ig
-        
-
-    def simulate(self, board, move, verbose = "None"):
-        if verbose != "None":
-            print("\nSIMMULATING\n\n")
-        if board.putPiece(move, board.currentTurn) is False:
-            return 0  # Illegal move fallback
-
-        if board.getAvailableSpaces() == []:
-            return 0  # draw if no moves
-
-        if board.currentTurn == 'R':
-            current_turn = 'Y'
-        else:
-            current_turn = 'R'
-
-        moves_trace = [move]
-        game_result = board.gameOver(move, board.row_size - 1)
-
-        while game_result is None:
-            valid_moves = board.getAvailableSpaces()
-            if not valid_moves:
-                game_result = 0
-                break
-
-            move = random.choice(valid_moves)
-            board.putPiece(move, current_turn)
-            moves_trace.append(move)
-            game_result = board.gameOver(move, board.row_size - 1)
-            current_turn = 'Y' if current_turn == 'R' else 'R'
-
-        if verbose != "None":
-            print("Rollout path:", moves_trace)
-            print(f"TERMINAL NODE VALUE: {game_result}")
-
-        return game_result
-
     
 class UCT:
     def __init__(self, simulations= 50, exploration=math.sqrt(2)):
@@ -218,13 +180,11 @@ class UCT:
 
 
 class GTNode:
-    parent = None
-    wi = 0
-    ni = 0
-    
-    def __init__(self, parent):
+    def __init__(self, parent = None):
         self.parent = parent
-        self.children = {i:None for i in range(7)}
+        self.wi = 0
+        self.ni = 0
+        self.children = [None for i in range(7)]
     
     def unexplored_children(self, available):
         """

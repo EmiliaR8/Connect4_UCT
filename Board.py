@@ -153,11 +153,11 @@ class Board():
                 self.board[row, c+3] == player):
                 return -1 if player == 'R' else 1
         # Vertical check
-        if row <= self.row_size - 4:
-            if (self.board[row, col] == player and 
-                self.board[row+1, col] == player and 
-                self.board[row+2, col] == player and 
-                self.board[row+3, col] == player):
+        for r in range(max(0, row - 3), min(row + 1, self.row_size - 3)):
+            if (self.board[r, col] == player and 
+                self.board[r+1, col] == player and 
+                self.board[r+2, col] == player and 
+                self.board[r+3, col] == player):
                 return -1 if player == 'R' else 1
         # Diagonal (top-left to bottom-right)
         for i in range(-3, 1):
