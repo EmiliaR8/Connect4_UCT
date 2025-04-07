@@ -217,13 +217,12 @@ class PMCGS:
 
 
 class STNode():
-    def __init__(self, state, move=None, parent=None):
-        self.state = state #A hashable representation of the board state.
+    def __init__(self, move=None, parent=None):
         self.move = move   #The move (column index) that led to this state.
         self.parent = parent #Pointer to the parent node.
         self.children = {} #Dictionary mapping move -> STNode.
-        self.wins = 0 #Wins accumulated through this node.
-        self.visits = 0 #Number of times this node was visited.
+        self.wi = 0 #Wi accumulated through this node.
+        self.ni = 0 #Number of times this node was visited.
 
     def is_fully_expanded(self, valid_moves):
         """Returns True if every valid move from this node has been expanded."""
@@ -233,16 +232,16 @@ class STNode():
         """Select the best child node using the UCB formula."""
         best_value = float('-inf')
         best_node = None
-        total_visits = sum(child.visits for child in self.children.values())
+        total_visits = sum(child.ni for child in self.children.values())
         for move, child in self.children.items():
-            if child.visits == 0:
+            if child.ni == 0:
                 ucb_value = float('inf')
             else:
-                win_rate = child.wins / child.visits
+                win_rate = child.wi / child.ni
                 #Adjust win rate for MIN player (assuming 'R' is MIN)
                 if current_turn == 'R':
                     win_rate = 1 - win_rate
-                exploration = exploration_param * math.sqrt(math.log(total_visits) / child.visits)
+                exploration = exploration_param * math.sqrt(math.log(total_visits) / child.ni)
                 ucb_value = win_rate + exploration
             if ucb_value > best_value:
                 best_value = ucb_value
@@ -267,14 +266,11 @@ class UCT_prime:
         if not available_moves:
             raise ValueError("No valid moves available")
         
-        #Convert board to state string
-        root_state = self._board_to_state(board)
-        
         #Initialize root node if needed
-        if self.root is None or self.root.state != root_state:
-            self.root = STNode(root_state)
+        if self.root is None:
+            self.root = STNode()
         
-        #Check for immediate wins
+        #Check for immediate wi
         for move in available_moves:
             temp_board = board.clone()
             row = temp_board.putPiece(move, temp_board.currentTurn)
@@ -297,7 +293,7 @@ class UCT_prime:
                 if col in available_moves:
                     if col in self.root.children:
                         child = self.root.children[col]
-                        value = child.wins / child.visits if child.visits > 0 else 0
+                        value = child.wi / child.ni if child.ni > 0 else 0
                         print(f"Column {col+1}: {value:.2f}")
                     else:
                         print(f"Column {col+1}: Null")
@@ -311,7 +307,7 @@ class UCT_prime:
         for move in available_moves:
             if move in self.root.children:
                 child = self.root.children[move]
-                value = child.wins / child.visits
+                value = child.wi / child.ni
                 
                 if board.currentTurn == 'Y': #MAX player
                     if value > best_value:
@@ -375,10 +371,9 @@ class UCT_prime:
                 result = board.gameOver(move, row)
                 
                 #Create new child node
-                new_state = self._board_to_state(board)
-                new_node = STNode(new_state, move=move, parent=current_node)
+                new_node = STNode(move=move, parent=current_node)
                 current_node.children[move] = new_node
-                visited_nodes.append(new_node)
+
                 
                 if result is not None:
                     #Backpropagate result
@@ -404,13 +399,13 @@ class UCT_prime:
                 for m in range(7):
                     if m in node.children:
                         child = node.children[m]
-                        win_rate = child.wins / child.visits if child.visits > 0 else 0
+                        win_rate = child.wi / child.ni if child.ni > 0 else 0
                         #Adjust for MIN player
                         if board.currentTurn == 'R':
                             win_rate = 1 - win_rate
                         
-                        total_visits = sum(c.visits for c in node.children.values() if c.visits > 0)
-                        exploration = self.exploration * math.sqrt(math.log(total_visits) / child.visits if child.visits > 0 else 1)
+                        total_visits = sum(c.ni for c in node.children.values() if c.ni > 0)
+                        exploration = self.exploration * math.sqrt(math.log(total_visits) / child.ni if child.ni > 0 else 1)
                         ucb = win_rate + exploration
                         print(f"V{m+1}: {ucb:.2f}")
                     else:
@@ -497,12 +492,12 @@ class UCT_prime:
     def backpropagate(self, visited_nodes, result):
         """Update statistics for all visited nodes"""
         for node in visited_nodes:
-            node.visits += 1
+            node.ni += 1
             
-            #Updating wins based on result
+            #Updating wi based on result
             if result == 1: #Yellow win
-                node.wins += 1
+                node.wi += 1
             elif result == -1: #Red win
-                pass #0 wins for Yellow
+                pass #0 wi for Yellow
             else: #Draw
-                node.wins += 0.5
+                node.wi += 0.5
