@@ -326,7 +326,7 @@ class UCT:
 
             print("This is the board" ,board.board)
             print("These are the available moves", available_moves)
-            breakpoint()
+            # breakpoint()
 
 
 
@@ -537,13 +537,15 @@ class UCT_prime:
         #Selecting the best move based on win ratio
         best_move = None
         best_value = float('-inf') if board.currentTurn == 'Y' else float('inf')
-        
+
         for move in available_moves:
             if move in self.root.children:
                 child = self.root.children[move]
-                print(child.wi, child.ni)
-
-                value = child.wi / child.ni  #FIXME should we set value to inf or to 0 when we havent explored this node yet?
+                if child.ni > 0:
+                    value = child.wi / child.ni
+                else:
+                    #Set a value that won't be chosen by current player
+                    value = float('-inf') if board.currentTurn == 'Y' else float('inf')
                 
                 if board.currentTurn == 'Y': #MAX player
                     if value > best_value:
