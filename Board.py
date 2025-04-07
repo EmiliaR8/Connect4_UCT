@@ -137,7 +137,10 @@ class Board():
         self.board[row,col] = 'O'
         self.move_stack[self.stackHead] = -1
         self.stackHead-=1
-        
+
+    def clone(self):
+        """Create a deep copy of the board for simulations"""
+        return Board(board=self.board.copy(), turnPlayer=self.currentTurn)
     
     def gameOver(self, col, row):
         """
