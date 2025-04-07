@@ -114,17 +114,30 @@ class Board():
             self.currentTurn = "R"
             updated_row = self.putPiece(selected_col,"Y")
         
-        # push to move_stack
-        #self.push()
         return self.gameOver(selected_col, updated_row)
     
     def putPiece(self, index, player):
+        """
+        Used to put a piece of a specific color in the board
+        """
         col = self.board[:,index]
         # Index the last instance of 'O' and replace it with the player code
         row = np.where(col == 'O')[0][-1]
         col[row] = player
         
+        # Push to move stack
+        self.stackHead += 1
+        self.move_stack[self.stackHead] = index*7+row
         return row
+    
+    def undo(self):
+        last_move = self.move_stack[self.stackHead]
+        row = last_move%7
+        col = last_move//7
+        self.board[row,col] = 'O'
+        self.move_stack[self.stackHead] = -1
+        self.stackHead-=1
+        
     
     def gameOver(self, col, row):
         """

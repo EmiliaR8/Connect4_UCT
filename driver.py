@@ -84,9 +84,26 @@ def read_file(txt_file):
 if __name__ == "__main__":
     # Unseeded randomness
     #random.seed(50)
-    txt_file = input("Please enter Game Board txt file name: ")
-    mode = input("Please enter mode you'd prefer (Brief, Verbose, None): ")
-    sim_num = int(input("Please enter the simmulation amount: "))
+    
+    # Check for cmd arguments
+    num_args = len(sys.argv)
+    
+    if num_args >= 2:
+        txt_file = sys.argv[1]
+    else:
+        txt_file = input("Please enter Game Board txt file name: ")
+    
+    if num_args >= 3:
+        mode = sys.argv[2]
+    else:
+        mode = input("Please enter mode you'd prefer (Brief, Verbose, None): ")
+    
+    if num_args == 4:
+        sim_num = int(sys.argv[3])
+    else:
+        sim_num = int(input("Please enter the simmulation amount: "))
+    
+
 
     play_game(txt_file = txt_file, verbose = 'verbose')
     # play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game

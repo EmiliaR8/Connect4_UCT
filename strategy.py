@@ -101,7 +101,8 @@ class PMCGS:
         
 
     def simulate(self, board, move, verbose = "None"):
-        print("\nSIMMULATING\n\n")
+        if verbose != "None":
+            print("\nSIMMULATING\n\n")
         if board.putPiece(move, board.currentTurn) is False:
             return 0  # Illegal move fallback
 
@@ -214,3 +215,6 @@ class UCT:
             print("Rollout path:", moves_trace)
             print(f"TERMINAL NODE VALUE: {game_result}")
         return game_result
+
+class STNode():
+    pass
