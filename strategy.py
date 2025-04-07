@@ -275,7 +275,7 @@ class UCT_prime:
         if hasattr(board, 'move_stack') and hasattr(board, 'stackHead') and board.stackHead > 0:
             last_encoded_move = board.move_stack[board.stackHead-1]
             #Decode the move, extracting just the column from the encoded move
-            last_col = last_encoded_move % board.column_size #Using modulus to get the column
+            last_col = last_encoded_move // board.column_size #Using int division to get the column
             
             if last_col in self.root.children:
                 self.root = self.root.children[last_col]
