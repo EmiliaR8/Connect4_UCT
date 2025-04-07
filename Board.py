@@ -185,6 +185,10 @@ class Board():
         # Game continues
         return None
     
+    def clone(self):
+        """Create a deep copy of the board for simulations"""
+        return Board(board=self.board.copy(), turnPlayer=self.currentTurn)
+    
 class TerminalPlayer():
     def __init__(self):
         pass
