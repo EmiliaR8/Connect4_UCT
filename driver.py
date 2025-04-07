@@ -105,6 +105,6 @@ if __name__ == "__main__":
     
 
 
-    play_game(txt_file = txt_file, verbose = 'verbose')
+    play_game(txt_file = txt_file, verbose = 'verbose', parameter = sim_num)
     # play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game
     
