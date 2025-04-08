@@ -218,8 +218,8 @@ class UCT:
 
     def takeTurn(self, board, verbose="None", parameter=None):
 
-        if parameter is not None:
-            self.simulations = parameter
+        #if parameter is not None:
+        #    self.simulations = parameter
 
         # available_moves = board.getAvailableSpaces()
         if not board.getAvailableSpaces():
