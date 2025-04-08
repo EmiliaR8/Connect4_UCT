@@ -97,7 +97,7 @@ def run_tournament(alg_names_r, alg_names_y):
         print()
 
 alg_list = ['UCT-10000' , 'Improved-UCT-10000']
-red_list = [1]
-yellow_list = [0]
+red_list = [0,1]
+yellow_list = [0,1]
 run_tournament([alg_list[i] for i in red_list], [alg_list[j] for j in yellow_list])
 # test() To run specific amount of simmulations per alg
