@@ -40,25 +40,15 @@ def play_game(txt_file = "None", verbose="None", parameter=0):
     else:
         alg, curr_board, player = read_file(txt_file)
 
-        if alg == "UR": #just to ensure that the user does not prompt Uniform Random to go with Verbose != None
-            verbose="None"  #or = 0 idk
-
         board = Board(turnPlayer = player, yellowPlayer = alg, redPlayer = alg, board = curr_board, sim_num = parameter)
 
     
     game_result = None
-    while game_result is None:
-        game_result = board.turn(verbose, parameter)
     
-    if verbose != "None": #TODO this should be removed since verbose should be used to print info for ALG 2 and 3, winner should be printed in any case
-        if game_result == -1:
-            print("Red wins!")
-        elif game_result == 1:
-            print("Yellow wins!")
-        else:
-            print("Draw!")
+    game_result = board.turn(verbose, parameter)
     
-    print(board.board)
+    
+    
     
     return game_result
 
@@ -105,6 +95,5 @@ if __name__ == "__main__":
     
 
 
-    play_game(txt_file = txt_file, verbose = 'verbose', parameter = sim_num)
-    # play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game
+    play_game(txt_file, mode, sim_num) #TODO Uncomment when we will be using the above parameters and edit the function signature of play_game
     

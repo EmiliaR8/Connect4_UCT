@@ -53,9 +53,7 @@ class PMCGS:
                     # Escape tree policy
                     in_tree = False
                     curr.children[move] = GTNode(curr)
-                    if verbose == "Verbose":
-                        print(f"Simulation {i + 1}/{self.simulations}")
-                        print("NODE ADDED")
+                    
                     
                 curr = curr.children[move]
                 # Make move on board
