@@ -156,6 +156,7 @@ class STNode_():
         return best_move
 
 
+
 class UCT:
     def __init__(self, simulations=500, exploration=math.sqrt(2)):
         self.simulations = simulations
@@ -177,10 +178,11 @@ class UCT:
         self.root = STNode_()  # Reset the tree every turn (no persistence)
 
         for _ in range(self.simulations):
+            
             #TODO keep track of current board and current player and stackhead 
             current_stack = board.stackHead
             current_player = board.currentTurn
-            self._tree_search(board, self.root)
+            self._tree_search(board, self.root, verbose)
             # Undo moves
 
             while board.stackHead > current_stack:
@@ -193,7 +195,7 @@ class UCT:
         for move in board.getAvailableSpaces():
             if move in self.root.children:
                 child = self.root.children[move]
-                
+
                 value = child.wi / child.ni if child.ni > 0 else 0
 
                 if current_player == "R":
@@ -207,9 +209,22 @@ class UCT:
             best_move = random.choice(board.getAvailableSpaces())
             print("we hit random move")
 
+        if verbose != "None":
+            for i in range(7):
+                if i in self.root.children:
+                    child = self.root.children[i]
+                    
+                    value = child.wi / child.ni if child.ni > 0 else 0
+                    if current_player == "R":
+                        value *= -1
+                    print(f"Column {i+1}: {value}")
+                else:
+                    print(f"Column {i+1}: NULL")
+            print(f"FINAL Move selected: {best_move}")
+
         return best_move
 
-    def _tree_search(self, board, node):
+    def _tree_search(self, board, node, verbose):
         current_node = node
 
         while True:
@@ -224,73 +239,111 @@ class UCT:
 
             if not current_node.is_fully_expanded(available_moves):  # Going through each available moves and simmulating what the game would be like for that move
                 unexplored_moves = [m for m in available_moves if m not in current_node.children]
-               
+
                #choose a random unexplored move
                 move = random.choice(unexplored_moves)
+                if verbose == "Verbose":
+                    print(f"wi: {current_node.wi}")
+                    print(f"ni: {current_node.ni}")
+                    print(f"Move selected: {move+1}")
+                    print("NODE ADDED")
                 row = board.putPiece(move, board.currentTurn)
                 result = board.gameOver(move, row)
 
                 #make this a new node in the tree
                 new_node = STNode_(move=move, parent=current_node)
                 current_node.children[move] = new_node
-                
+
                 current_node = new_node
-                
+
                 #if it is a terminal state then we backpropigate and return
                 if result is not None:
-                    self.backpropagate(current_node, result)
+                    if verbose == "Verbose":
+                        print(f"TERMINAL NODE VALUE: {result}")
+                    self.backpropagate(current_node, result, verbose)
                     return
-                
+
                 #Rollout if its not a terminal state
                 board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
-                result = self.simulate(board)
-                self.backpropagate(current_node, result)
+                result = self.simulate(board, verbose)
+                self.backpropagate(current_node, result, verbose)
                 return  # Exit after expanding one node
-            
+
             else:
                 # Tree policy phase
                 move = current_node.best_child(self.exploration, board.currentTurn)
+                
+                if verbose == "Verbose":
+                    print(f"wi: {current_node.wi}")
+                    print(f"ni: {current_node.ni}")
+                    for i in range(7):
+                        if i in current_node.children:
+                            total_visits = current_node.ni
+                            child = current_node.children[i]
+                            win_rate = child.wi / child.ni
+                            if board.currentTurn == "R":
+                                win_rate *= -1
+                            exploration = self.exploration * math.sqrt(math.log(total_visits) / child.ni)
+                            print(f"V{i+1}: {win_rate + exploration}")
+                        else:
+                            print(f"V{i+1}: NULL")
+                    print(f"Move selected: {move+1}")
+                
                 current_node = current_node.children[move]
 
-                
+
                 row = board.putPiece(move, board.currentTurn)
                 result = board.gameOver(move, row)
                 if result is not None:
-                    self.backpropagate(current_node, result)
+                    self.backpropagate(current_node, result, verbose)
                     return
-                
+
 
                 #Update the current turn
                 board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
 
         # If the while loop ends with no result (e.g. full board), run a simulation
-        result = self.simulate(board)
-        self.backpropagate(current_node, result)
+        result = self.simulate(board, verbose)
+        self.backpropagate(current_node, result, verbose)
 
 
-    def simulate(self, board):
+    def simulate(self, board, verbose):
         current_turn = board.currentTurn
         while True:
             valid_moves = board.getAvailableSpaces()
             if not valid_moves:
                 return 0
             move = random.choice(valid_moves)
+            if verbose == "Verbose":
+                print(f"Move selected: {move+1}")
             row = board.putPiece(move, current_turn)
             result = board.gameOver(move, row)
             if result is not None:
+                if verbose == "Verbose":
+                    print(f"TERMINAL NODE VALUE: {result}")
                 return result
             current_turn = 'R' if current_turn == 'Y' else 'Y'
 
 
-    def backpropagate(self, current_node, result):
+    def backpropagate(self, current_node, result, verbose):
         curr = current_node
         while curr.parent is not None:
             curr.ni += 1
             curr.wi += result
             curr = curr.parent
-        
+            if verbose == "Verbose":
+                print("Updated Values:")
+                print(f"wi: {curr.wi}")
+                print(f"ni: {curr.ni}")
+                print()
+
         curr.ni+= 1
         curr.wi+= result
+        if verbose == "Verbose":
+            print("Updated Values:")
+            print(f"wi: {curr.wi}")
+            print(f"ni: {curr.ni}")
+            print()
 
 
 
