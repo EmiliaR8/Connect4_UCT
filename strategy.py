@@ -21,11 +21,11 @@ class UniformRandom:
             #Display the move as 1-indexed.
             print(f"Final Move selected: {selected_move + 1}")
         return selected_move
-    
+
 class PMCGS:
     def __init__(self, simulations= 50):
         self.simulations = simulations
-        
+ 
     
     def takeTurn(self, board, verbose="None", parameter=None):
         # Initialization
@@ -44,11 +44,18 @@ class PMCGS:
             while in_tree:
                 # Get the next move
                 move = random.choice(board.getAvailableSpaces())
+                if verbose == "Verbose":
+                        print(f"wi: {curr.wi}")
+                        print(f"ni: {curr.ni}")
+                        print(f"Move selected: {move+1}")
                 # If selected a move that is not in tree
                 if curr.children[move] is None:
                     # Escape tree policy
                     in_tree = False
                     curr.children[move] = GTNode(curr)
+                    if verbose == "Verbose":
+                        print(f"Simulation {i + 1}/{self.simulations}")
+                        print("NODE ADDED")
                     
                 curr = curr.children[move]
                 # Make move on board
@@ -69,12 +76,20 @@ class PMCGS:
                 curr_turn = next_turn[curr_turn]
                 
                 result = board.gameOver(move, last_row)
-            
+                if verbose == "Verbose":
+                    print(f"Rollout move: {move + 1}")
+ 
+            if verbose == "Verbose" and result is not None:
+                print(f"TERMINAL NODE VALUE: {result}")
+ 
             # Backpropogate
             while curr.parent is not None:
                 curr.ni += 1
                 curr.wi += result
+                if verbose == "Verbose":
+                    print(f"Updated values: wi={curr.wi}, ni={curr.ni}")
                 curr = curr.parent
+ 
             # Undo moves
             while board.stackHead > return_depth:
                 board.undo()
@@ -85,17 +100,29 @@ class PMCGS:
             if root.children[i] is None:
                 # Create a new node
                 new_child = GTNode(root)
-                # Give it a usage 
+                # Give it a usage
                 new_child.ni = 1
                 # Initialize it as the worst move for a player, red is min, so make it 1
                 # Yellow is max, so make it -1
                 new_child.wi = {"R":1, "Y":-1}[current_team]
                 root.children[i] = new_child
+                
+        if verbose != "None":
+            print("Immediate next move values:")
+            for i in range(7):
+                if root.children[i] is None:
+                    print(f"Column {i + 1}: Null")
+                else:
+                    child = root.children[i]
+                    value = child.wi / child.ni if child.ni > 0 else 0
+                    print(f"Column {i + 1}: {value:.2f}")
         
         # Take the best move depending on if the current player is red or yellow
         # Red is min, so take min
         # Yellow is max, so take max
         best_move = ({"R":min,"Y":max}[current_team])(board.getAvailableSpaces(), key = lambda i: root.children[i].wi/(root.children[i].ni))
+        if verbose != "None":
+            print(f"FINAL Move selected: {best_move + 1}")
         return best_move
 
 class STNode_():
