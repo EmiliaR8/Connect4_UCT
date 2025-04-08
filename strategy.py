@@ -190,15 +190,18 @@ class STNode_():
     def is_fully_expanded(self, valid_moves):
         return all(move in self.children for move in valid_moves)
 
-    def best_child(self, exploration_param):
+    def best_child(self, exploration_param, curr_player):
         best_value = float('-inf')
         best_move = None
-        total_visits = sum(child.ni for child in self.children.values())
+        total_visits = self.ni
+
         for move, child in self.children.items():
             if child.ni == 0:
                 ucb_value = float('inf')
             else:
                 win_rate = child.wi / child.ni
+                if curr_player == "R":
+                    win_rate *= -1
                 exploration = exploration_param * math.sqrt(math.log(total_visits) / child.ni)
                 ucb_value = win_rate + exploration
             if ucb_value > best_value:
@@ -228,17 +231,28 @@ class UCT:
         self.root = STNode_()  # Reset the tree every turn (no persistence)
 
         for _ in range(self.simulations):
+            #TODO keep track of current board and current player and stackhead 
+            current_stack = board.stackHead
+            current_player = board.currentTurn
             self._tree_search(board, self.root)
+            # Undo moves
+
+            while board.stackHead > current_stack:
+                board.undo()         
+            board.currentTurn = current_player
 
         best_move = None
         best_value = float('-inf')
 
-        # print(available_moves)
-        
         for move in board.getAvailableSpaces():
             if move in self.root.children:
                 child = self.root.children[move]
+                
                 value = child.wi / child.ni if child.ni > 0 else 0
+
+                if current_player == "R":
+                    value *= -1
+
                 if value > best_value:
                     best_value = value
                     best_move = move
@@ -250,72 +264,62 @@ class UCT:
         return best_move
 
     def _tree_search(self, board, node):
-        from Board import Board
-        visited_nodes = []
         current_node = node
 
         while True:
-            visited_nodes.append(current_node)
             available_moves = board.getAvailableSpaces()
 
-            print("This is the board" ,board.board)
-            print("These are the available moves", available_moves)
+            # print("This is the board" ,board.board)
+            # print("These are the available moves", available_moves)
             # breakpoint()
 
             if not available_moves:
                 break
 
-            if not current_node.is_fully_expanded(available_moves):  # Expansion phase
+            if not current_node.is_fully_expanded(available_moves):  # Going through each available moves and simmulating what the game would be like for that move
                 unexplored_moves = [m for m in available_moves if m not in current_node.children]
+               
+               #choose a random unexplored move
+                move = random.choice(unexplored_moves)
+                row = board.putPiece(move, board.currentTurn)
+                result = board.gameOver(move, row)
 
-                for move in unexplored_moves:
-                    col = board.board[:, move]
-                    print("column that we are going to explore",col)
-                    if 'O' not in col:
-                        print("is full\n\n")
-                        continue  # column is full, skip this move
+                #make this a new node in the tree
+                new_node = STNode_(move=move, parent=current_node)
+                current_node.children[move] = new_node
                 
-                    row = board.putPiece(move, board.currentTurn)
-                    result = board.gameOver(move, row)
+                current_node = new_node
+                
+                #if it is a terminal state then we backpropigate and return
+                if result is not None:
+                    self.backpropagate(current_node, result)
+                    return
+                
+                #Rollout if its not a terminal state
+                board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
+                result = self.simulate(board)
+                self.backpropagate(current_node, result)
+                return  # Exit after expanding one node
+            
+            else:
+                # Tree policy phase
+                move = current_node.best_child(self.exploration, board.currentTurn)
+                current_node = current_node.children[move]
 
-                    new_node = STNode_(move=move, parent=current_node)
-                    current_node.children[move] = new_node
-                    visited_nodes.append(new_node)
+                
+                row = board.putPiece(move, board.currentTurn)
+                result = board.gameOver(move, row)
+                if result is not None:
+                    self.backpropagate(current_node, result)
+                    return
+                
 
-                    if result is not None:
-                        self.backpropagate(visited_nodes, result)
-                        return
-
-                    board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
-                    result = self.simulate(board)
-                    self.backpropagate(visited_nodes, result)
-                    return  # Exit after expanding one node
-
-                # If no valid unexplored moves were available, abort this simulation
-                return
-
-            # Tree policy phase
-            move = current_node.best_child(self.exploration)
-            current_node = current_node.children[move]
-
-            # Skip move if the column is full
-            col = board.board[:, move]
-            print("choson move column:", col)
-            if 'O' not in col:
-                print("is full \n\n")
-                return  # invalid move, abort this simulation
-
-            row = board.putPiece(move, board.currentTurn)
-            result = board.gameOver(move, row)
-            if result is not None:
-                self.backpropagate(visited_nodes, result)
-                return
-
-            board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
+                #Update the current turn
+                board.currentTurn = 'R' if board.currentTurn == 'Y' else 'Y'
 
         # If the while loop ends with no result (e.g. full board), run a simulation
         result = self.simulate(board)
-        self.backpropagate(visited_nodes, result)
+        self.backpropagate(current_node, result)
 
 
     def simulate(self, board):
@@ -331,13 +335,17 @@ class UCT:
                 return result
             current_turn = 'R' if current_turn == 'Y' else 'Y'
 
-    def backpropagate(self, visited_nodes, result):
-        for node in visited_nodes:
-            node.ni += 1
-            if result == 1:
-                node.wi += 1
-            elif result == 0:
-                node.wi += 0.5
+
+    def backpropagate(self, current_node, result):
+        curr = current_node
+        while curr.parent is not None:
+            curr.ni += 1
+            curr.wi += result
+            curr = curr.parent
+        
+        curr.ni+= 1
+        curr.wi+= result
+
 
 
 
