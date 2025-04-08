@@ -97,87 +97,6 @@ class PMCGS:
         # Yellow is max, so take max
         best_move = ({"R":min,"Y":max}[current_team])(board.getAvailableSpaces(), key = lambda i: root.children[i].wi/(root.children[i].ni))
         return best_move
-'''    
-class UCT:
-    def __init__(self, simulations= 50, exploration=math.sqrt(2)):
-        self.simulations = simulations
-        self.exploration = exploration
-        self.stats = {}  # Stores (wi, ni) for each state
-    
-    def takeTurn(self, board, verbose="None", parameter=None):
-        from Board import Board #Same here
-        available_moves = board.getAvailableSpaces()
-        if not available_moves:
-            raise ValueError("No valid moves available")
-        
-        move_stats = {move: [0, 0] for move in available_moves}  # {move: [wi, ni]}
-        
-        for i in range(self.simulations):
-            move = self.select_move(available_moves, move_stats)
-            temp_board = Board(rows=board.row_size, cols=board.column_size, 
-                               turnPlayer=board.currentTurn, board=board.board.copy())
-            result = self.simulate(temp_board, move, verbose)
-            
-            # Update stats
-            move_stats[move][1] += 1  # ni += 1
-            if result == 1 and board.currentTurn == 'Y':
-                move_stats[move][0] += 1  # wi += 1 for Yellow win
-            elif result == -1 and board.currentTurn == 'R':
-                move_stats[move][0] += 1  # wi += 1 for Red win
-            
-            if verbose != "None":
-                print(f"wi: {move_stats[move][0]}\nni: {move_stats[move][1]}")
-                ucb_values = {m: (move_stats[m][0] / (move_stats[m][1] + 1e-6)) + self.exploration * math.sqrt(math.log(sum(ms[1] for ms in move_stats.values()) + 1) / (move_stats[m][1] + 1e-6)) for m in available_moves}
-                for m, v in sorted(ucb_values.items()):
-                    print(f"V{m + 1}: {v:.2f}")
-                print(f"Move selected: {move + 1}")
-        
-        # Select best move based on win ratio
-        best_move = max(available_moves, key=lambda m: move_stats[m][0] / (move_stats[m][1] + 1e-6))
-        
-        if verbose != "None":
-            print(f"Final move selected: {best_move + 1}")
-        
-        return best_move
-
-    def select_move(self, available_moves, move_stats):
-        # First, check for any unvisited moves
-        unvisited = [m for m in available_moves if move_stats[m][1] == 0]
-        if unvisited:
-            return random.choice(unvisited)
-
-        # Otherwise, use UCB formula
-        total_visits = sum(move_stats[m][1] for m in available_moves)
-        return max(
-            available_moves,
-            key=lambda m: (
-                (move_stats[m][0] / move_stats[m][1]) +
-                self.exploration * math.sqrt(math.log(total_visits) / move_stats[m][1])
-            )
-        )
-
-    def simulate(self, board, move, verbose="None"):
-        moves_trace = [move]
-        board.putPiece(move, board.currentTurn)
-        game_result = board.gameOver(move, board.row_size - 1)
-        current_turn = 'Y' if board.currentTurn == 'R' else 'R'
-
-        while game_result is None:
-            valid_moves = board.getAvailableSpaces()
-            if not valid_moves:
-                return 0  # Draw
-
-            move = random.choice(valid_moves)
-            moves_trace.append(move)
-            board.putPiece(move, current_turn)
-            game_result = board.gameOver(move, board.row_size - 1)
-            current_turn = 'Y' if current_turn == 'R' else 'R'
-
-        if verbose != "None": #FIXME change this logic to whatever the correct version is
-            print("Rollout path:", moves_trace)
-            print(f"TERMINAL NODE VALUE: {game_result}")
-        return game_result
-'''
 
 class STNode_():
     def __init__(self, move=None, parent=None):
@@ -380,11 +299,11 @@ class STNode():
         """Returns True if every valid move from this node has been expanded."""
         return all(move in self.children for move in valid_moves)
 
-    def best_child(self, exploration_param, current_turn):
+    def best_child(self, exploration_param, current_turn):  
         """Select the best move using the UCB formula."""
         best_value = float('-inf')
         best_move = None #Change from best_node to best_move
-        total_visits = sum(child.ni for child in self.children.values())
+        total_visits = self.ni
         for move, child in self.children.items():
             if child.ni == 0:
                 ucb_value = float('inf')
@@ -392,7 +311,7 @@ class STNode():
                 win_rate = child.wi / child.ni
                 #Adjust win rate for MIN player (assuming 'R' is MIN)
                 if current_turn == 'R':
-                    win_rate = 1 - win_rate
+                    win_rate *= -1
                 exploration = exploration_param * math.sqrt(math.log(total_visits) / child.ni)
                 ucb_value = win_rate + exploration
             if ucb_value > best_value:
@@ -409,13 +328,8 @@ class UCT_prime:
         self.root = None #Root node of the search tree
     
     def takeTurn(self, board, verbose="None", parameter=None):
-        from Board import Board
-        
-        #Passes different simulation counts when calling takeTurn().
-        if parameter is not None: 
-            self.simulations = parameter
-            
         available_moves = board.getAvailableSpaces()
+
         if not available_moves:
             raise ValueError("No valid moves available")
         
@@ -455,11 +369,13 @@ class UCT_prime:
 
         #Run simulations using tree search
         for i in range(self.simulations):
+            curr_player = board.currentTurn
             self._tree_search(board, self.root, verbose)
             #Restore board to original state
             if original_stack_head is not None:
                 while board.stackHead > original_stack_head:
                     board.undo()
+            board.currentTurn = curr_player
             
         #Displaying tree stats if verbose
         if verbose != "None":
@@ -498,14 +414,11 @@ class UCT_prime:
             else:
                 #If a move hasn't been explored yet, we will initialize it
                 if verbose != "None":
-                    print("NODE ADDED")
+                    print("Random move taken")
+
                 #Pick this unexplored move
                 best_move = move
                 break
-        
-        #If no move was selected, pick a random one
-        if best_move is None and available_moves:
-            best_move = random.choice(available_moves)
             
         if verbose != "None":
             print(f"FINAL Move selected: {best_move + 1}")
@@ -566,6 +479,8 @@ class UCT_prime:
                 #Do SIMULATION phase
                 result = self.simulate(board, verbose)
                 
+                visited_nodes.append(new_node)
+
                 #Backpropagate result
                 self.backpropagate(visited_nodes, result)
                 return
@@ -602,6 +517,7 @@ class UCT_prime:
             result = board.gameOver(move, row)
             if result is not None:
                 #Backpropagate result
+                visited_nodes.append(current_node)
                 self.backpropagate(visited_nodes, result)
                 return
                 
@@ -676,11 +592,5 @@ class UCT_prime:
         """Update statistics for all visited nodes"""
         for node in visited_nodes:
             node.ni += 1
-            
-            #Updating wi based on result
-            if result == 1: #Yellow win
-                node.wi += 1
-            elif result == -1: #Red win
-                pass #0 wi for Yellow
-            else: #Draw
-                node.wi += 0.5
+            node.wi += result
+
