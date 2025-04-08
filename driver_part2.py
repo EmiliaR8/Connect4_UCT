@@ -8,7 +8,7 @@ def test():
     #generate empty board 
     board = Board()
     
-    alg = int(input("Please the algorithm you want to use for player 1 RED (1: UR, 2: PMCGS, 3:UCT): "))
+    alg = int(input("Please the algorithm you want to use for player 1 RED (1: UR, 2: PMCGS, 3:UCT, 4:UCT Prime): "))
     if alg == 1:
         board.bindPlayer(UniformRandom(), "R")
         num = 0
@@ -19,12 +19,12 @@ def test():
         num = int(input("Please the number of simulations for UCT "))
         board.bindPlayer(UCT(simulations = num), "R")
     elif alg == 4:
-        num = int(input("Please the number of simulations for UCT "))
+        num = int(input("Please the number of simulations for UCT prime"))
         board.bindPlayer(UCT_prime(simulations = num), "R")
     else:
         print("wrong")
 
-    alg = int(input("Please the algorithm you want to use for player 2 YELLOW (1: UR, 2: PMCGS, 3:UCT): "))
+    alg = int(input("Please the algorithm you want to use for player 2 YELLOW (1: UR, 2: PMCGS, 3:UCT, 4:UCT Prime): "))
     if alg == 1:
         board.bindPlayer(UniformRandom(), "Y")
         num = 0
@@ -45,7 +45,6 @@ def test():
     while game_result is None:
         game_result = board.turn(verbosity = "None", parameter = num)
 
-     #TODO this should be removed since verbose should be used to print info for ALG 2 and 3, winner should be printed in any case
     if game_result == -1:
         print("Red wins!")
     elif game_result == 1:
@@ -83,7 +82,6 @@ def run_tournament(alg_names_r, alg_names_y):
                 game += 1
                 # Alternate first player
                 
-
                 board = Board()
                 board.bindPlayer(alg_configs[alg1_name](), "R")
                 board.bindPlayer(alg_configs[alg2_name](), "Y")
@@ -115,7 +113,10 @@ def run_tournament(alg_names_r, alg_names_y):
         print()
 
 alg_list = ['UR', 'PMCGS-500', 'PMCGS-1000', 'UCT-500', 'UCT-1000']
-red_list = [0,1]
-yellow_list = [0]
+
+#Adjustable lists for what algirthms to include in tournament per player
+red_list = [0,1,2,3,4]
+yellow_list = [0,1,2,3,4]
+
 run_tournament([alg_list[i] for i in red_list], [alg_list[j] for j in yellow_list])
-#test()
+#test() To test single pairings with specific simmulation numbers

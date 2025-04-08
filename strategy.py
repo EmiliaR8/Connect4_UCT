@@ -162,11 +162,6 @@ class UCT:
         self.root = None
 
     def takeTurn(self, board, verbose="None", parameter=None):
-
-        #if parameter is not None:
-        #    self.simulations = parameter
-
-        # available_moves = board.getAvailableSpaces()
         if not board.getAvailableSpaces():
             raise ValueError("No valid moves available")
 
@@ -176,13 +171,9 @@ class UCT:
         self.root = STNode_()  # Reset the tree every turn (no persistence)
 
         for _ in range(self.simulations):
-            
-            #TODO keep track of current board and current player and stackhead 
             current_stack = board.stackHead
             current_player = board.currentTurn
-            self._tree_search(board, self.root, verbose)
-            # Undo moves
-
+            self._tree_search(board, self.root)
             while board.stackHead > current_stack:
                 board.undo()         
             board.currentTurn = current_player
@@ -228,9 +219,6 @@ class UCT:
         while True:
             available_moves = board.getAvailableSpaces()
 
-            # print("This is the board" ,board.board)
-            # print("These are the available moves", available_moves)
-            # breakpoint()
 
             if not available_moves:
                 break
@@ -406,18 +394,16 @@ class UCT_prime:
         self.root = None #Root node of the search tree
     
     def takeTurn(self, board, verbose="None", parameter=None):
-        available_moves = board.getAvailableSpaces()
-
-        if not available_moves:
+        if not board.getAvailableSpaces():
             raise ValueError("No valid moves available")
         
         #Initialize root node if needed
         if self.root is None:
             self.root = STNode()
 
-        #Updating the root based on the opponent's last move 
+        #Updating the root based on the opponent's last move FIXME
         if hasattr(board, 'move_stack') and hasattr(board, 'stackHead') and board.stackHead > 0:
-            last_encoded_move = board.move_stack[board.stackHead-1]
+            last_encoded_move = board.move_stack[board.stackHead]
             #Decode the move, extracting just the column from the encoded move
             last_col = last_encoded_move // board.column_size #Using int division to get the column
             
@@ -430,7 +416,7 @@ class UCT_prime:
 
         
         #Check for immediate wi
-        for move in available_moves:
+        for move in board.getAvailableSpaces():
             row = board.putPiece(move, board.currentTurn)
             result = board.gameOver(move, row)
             board.undo() #Undo the move to maintain original board
@@ -441,24 +427,22 @@ class UCT_prime:
                     print("Winning move found!")
                     print(f"FINAL Move selected: {move + 1}")
                 return move
-        
-        # Save stack position
-        original_stack_head = board.stackHead if hasattr(board, 'stackHead') else None
+
 
         #Run simulations using tree search
         for i in range(self.simulations):
+            original_stack_head = board.stackHead
             curr_player = board.currentTurn
             self._tree_search(board, self.root, verbose)
             #Restore board to original state
-            if original_stack_head is not None:
-                while board.stackHead > original_stack_head:
-                    board.undo()
+            while board.stackHead > original_stack_head:
+                board.undo()
             board.currentTurn = curr_player
             
         #Displaying tree stats if verbose
         if verbose != "None":
             for col in range(7):
-                if col in available_moves:
+                if col in board.getAvailableSpaces():
                     if col in self.root.children:
                         child = self.root.children[col]
                         value = child.wi / child.ni if child.ni > 0 else 0
@@ -472,7 +456,7 @@ class UCT_prime:
         best_move = None
         best_value = float('-inf') if board.currentTurn == 'Y' else float('inf')
 
-        for move in available_moves:
+        for move in board.getAvailableSpaces():
             if move in self.root.children:
                 child = self.root.children[move]
                 if child.ni > 0:
@@ -522,15 +506,13 @@ class UCT_prime:
         while True:
             visited_nodes.append(current_node)
             
-            #Getting available moves
-            available_moves = board.getAvailableSpaces()
-            if not available_moves:
+            if not board.getAvailableSpaces():
                 break #Terminal state
                 
             #Checking if this node is fully expanded
-            if not current_node.is_fully_expanded(available_moves):
+            if not current_node.is_fully_expanded(board.getAvailableSpaces()):
                 #EXPANSION to choose unexplored move
-                unexplored_moves = [m for m in available_moves if m not in current_node.children]
+                unexplored_moves = [m for m in board.getAvailableSpaces() if m not in current_node.children]
                 move = random.choice(unexplored_moves)
                 if verbose == "Verbose":
                     print("NODE ADDED")
@@ -564,8 +546,15 @@ class UCT_prime:
                 return
             
             #SELECTION to use UCB to choose move
+            # print("\n\ncurrent board\n",board.board)
+
+            # print(board.getAvailableSpaces())
+            
             move = current_node.best_child(self.exploration, board.currentTurn)
+            
             current_node = current_node.children[move]
+
+
             
             if verbose == "Verbose":
                 #Print UCB values
