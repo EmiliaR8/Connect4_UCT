@@ -58,7 +58,7 @@ def test():
     print(board.board)
 
 
-def run_tournament():
+def run_tournament(alg_names_r, alg_names_y):
     alg_configs = {
         "UR": lambda: UniformRandom(),
         "PMCGS-500": lambda: PMCGS(simulations=500),
@@ -69,11 +69,12 @@ def run_tournament():
 
     results = defaultdict(lambda: defaultdict(int))
     alg_names = list(alg_configs.keys())
+    
     game = 1
-    for i in range(len(alg_names)):
-        for j in range(len(alg_names)):
-            alg1_name = alg_names[i]
-            alg2_name = alg_names[j]
+    for i in range(len(alg_names_r)):
+        for j in range(len(alg_names_y)):
+            alg1_name = alg_names_r[i]
+            alg2_name = alg_names_y[j]
             wins1, wins2 = 0, 0
             
             print("current players: ", alg1_name," and ", alg2_name)
@@ -121,6 +122,8 @@ def run_tournament():
             print(f"{win_pct:15.2f}", end='')
         print()
 
-
-run_tournament()
+alg_list = ['UR', 'PMCGS-500', 'PMCGS-1000', 'UCT-500', 'UCT-1000']
+red_list = [0,1]
+yellow_list = [0]
+run_tournament([alg_list[i] for i in red_list], [alg_list[j] for j in yellow_list])
 #test()
