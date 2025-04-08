@@ -82,30 +82,22 @@ def run_tournament(alg_names_r, alg_names_y):
                 print("playing game: ", game)
                 game += 1
                 # Alternate first player
-                if game_num % 2 == 0:
-                    red_alg, yellow_alg = alg1_name, alg2_name
-                else:
-                    red_alg, yellow_alg = alg2_name, alg1_name
+                
 
                 board = Board()
-                board.bindPlayer(alg_configs[red_alg](), "R")
-                board.bindPlayer(alg_configs[yellow_alg](), "Y")
+                board.bindPlayer(alg_configs[alg1_name](), "R")
+                board.bindPlayer(alg_configs[alg2_name](), "Y")
                 
                 result = None
                 while result is None:
                     result = board.turn(verbosity="None", parameter=0)
 
                 if result == 1:  # Yellow wins
-                    winner = yellow_alg 
+                    wins2 += 1 
                 elif result == -1:  # Red wins
-                    winner = red_alg 
+                    wins1 += 1 
                 else:
                     winner = None  # draw
-
-                if winner == alg1_name:
-                    wins1 += 1
-                elif winner == alg2_name:
-                    wins2 += 1
 
             results[alg1_name][alg2_name] = (wins1 / 100) * 100  # percentage
 
